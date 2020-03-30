@@ -40,7 +40,7 @@ var at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
 
 var player;
-
+var PR;
 window.onload = function init() {
 
     canvas = document.getElementById( "gl-canvas" );
@@ -55,6 +55,7 @@ window.onload = function init() {
     //gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
 
+    PR = PlyReader();
     player = new Player();
 
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );
@@ -188,32 +189,22 @@ class Player {
         this.y = 0.0;
         this.z = 0.0;
         
-        var myTeapot = teapot(15);
-        myTeapot.scale(0.5, 0.5, 0.5);
+        var plyData = PR.read("steering.ply");
 
-        this.points = myTeapot.TriangleVertices;
-        this.normals = myTeapot.Normals;
+        this.points = plyData.points;
+        this.normals = plyData.normals;
+
     }
 
     draw() {
-        /*var x = this.x; // færum frekar með því að nota vörpun
-        var y = this.y;
-        var z = this.z;
-        var p = this.points.map(function(val){
-            var v = [...val]; // deep copy of pos
-            v[0] = v[0]+x;
-            v[1] = v[1]+y;
-            v[2] = v[2]+z;
-            return v;
-        });*/
         var mv = mult( modelViewMatrix, translate(this.x, this.y, this.z));
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(p), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.points), gl.STATIC_DRAW);
 
-        gl.drawArrays( gl.TRIANGLES, 0, p.length );
+        gl.drawArrays( gl.TRIANGLES, 0, this.points.length );
     }
 
     move(x, z) {
