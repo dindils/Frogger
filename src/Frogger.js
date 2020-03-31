@@ -199,17 +199,17 @@ class Player {
         this.animY = 0.0;
         this.desiredX = 0.0;
         this.desiredZ = 0.0;
-        
+        this.speed = 2;
         var plyData = PR.read(PLAYERMODELLOC);
 
         this.points = plyData.points;
         this.normals = plyData.normals;
-
     }
 
     draw() {
         var mv = mult( modelViewMatrix, translate(this.x, this.y + this.animY, this.z));
-        mv = mult( mv, rotateX(-90))
+        mv = mult( mv, rotateX(-90));
+        mv = mult( mv, scalem(0.5,0.5,0.5));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW );
@@ -219,15 +219,14 @@ class Player {
 
         gl.drawArrays( gl.TRIANGLES, 0, this.points.length );
     }
-
     update(delta) {
         if(this.animJumping) {
             this.animY = Math.fround(Math.abs(Math.sin(this.x*3.14)+Math.sin(this.z*3.14)));
             if(Math.abs(this.x-this.desiredX)>0.001) {
-                this.x = this.x + (this.desiredX - this.x)/Math.abs(this.desiredX - this.x)*delta;
+                this.x = this.x + (this.desiredX - this.x)/Math.abs(this.desiredX - this.x)*delta*this.speed;
             }
             else if(Math.abs(this.z-this.desiredZ)>0.001) {
-                this.z = this.z + (this.desiredZ - this.z)/Math.abs(this.desiredZ - this.z)*delta;
+                this.z = this.z + (this.desiredZ - this.z)/Math.abs(this.desiredZ - this.z)*delta*this.speed;
             } else {
                 this.animY = 0.0;
                 this.x = Math.round(this.x);
@@ -236,7 +235,6 @@ class Player {
             }
         }
     }
-
     move(x, z) {
         if(!this.animJumping) {
             this.desiredX = Math.round(this.x) + x;
@@ -244,4 +242,6 @@ class Player {
             this.animJumping = true;
         }
     }
+
+
 }
