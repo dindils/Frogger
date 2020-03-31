@@ -18,13 +18,13 @@ var fovy = 60.0;
 var near = 0.2;
 var far = 100.0;
 
-var lightPosition = vec4(10.0, 10.0, 10.0, 1.0 );
+var lightPosition = vec4(10.0, 40.0, 10.0, 1.0 );
 var lightAmbient = vec4(1.0, 1.0, 1.0, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
 var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
 
 var materialAmbient = vec4( 0.2, 0.0, 0.2, 1.0 );
-var materialDiffuse = vec4( 1.0, 0.8, 0.0, 1.0 );
+var materialDiffuse = vec4( 0.0, 1.0, 0.0, 1.0 );
 var materialSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
 var materialShininess = 50.0;
 
@@ -69,10 +69,11 @@ window.onload = function init() {
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
     specularProduct = mult(lightSpecular, materialSpecular);
 
+    colorCube()
 
     nBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
-    //gl.bufferData( gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW );
+    //gl.bufferData( gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW );
 
     var vNormal = gl.getAttribLocation( program, "vNormal" );
     gl.vertexAttribPointer( vNormal, 4, gl.FLOAT, false, 0, 0 );
@@ -80,7 +81,7 @@ window.onload = function init() {
 
     vBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-    //gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+    //gl.bufferData(gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW);
 
     var vPosition = gl.getAttribLocation( program, "vPosition");
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
@@ -170,25 +171,70 @@ function render(now) {
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    modelViewMatrix = lookAt( vec3(0.0, 0.0, zDist), at, up );
-    modelViewMatrix = mult( modelViewMatrix, rotateY( -spinY ) );
-    modelViewMatrix = mult( modelViewMatrix, rotateX( spinX ) );
 
-    normalMatrix = [
-        vec3(modelViewMatrix[0][0], modelViewMatrix[0][1], modelViewMatrix[0][2]),
-        vec3(modelViewMatrix[1][0], modelViewMatrix[1][1], modelViewMatrix[1][2]),
-        vec3(modelViewMatrix[2][0], modelViewMatrix[2][1], modelViewMatrix[2][2])
-    ];
-
-    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix) );
-    gl.uniformMatrix3fv(normalMatrixLoc, false, flatten(normalMatrix) );
-
-    player.draw();
+    var mv = lookAt( vec3(player.x, 3.0, player.z + zDist), vec3(player.x, 0.0, player.z), up );
+    player.draw(mv);
+    drawScenery(mv);
     player.update(deltaTime);
 
     //gl.drawArrays( gl.TRIANGLES, 0, points.length );
     window.requestAnimFrame(render);
 }
+
+function colorCube()
+{
+    quad( 1, 0, 3, 2 );
+    quad( 2, 3, 7, 6 );
+    quad( 3, 0, 4, 7 );
+    quad( 6, 5, 1, 2 );
+    quad( 4, 5, 6, 7 );
+    quad( 5, 4, 0, 1 );
+}
+
+function quad(a, b, c, d) 
+{
+   var vertices = [
+    vec4( -0.5, -0.5,  0.5, 1.0 ),
+    vec4( -0.5,  0.5,  0.5, 1.0 ),
+    vec4(  0.5,  0.5,  0.5, 1.0 ),
+    vec4(  0.5, -0.5,  0.5, 1.0 ),
+    vec4( -0.5, -0.5, -0.5, 1.0 ),
+    vec4( -0.5,  0.5, -0.5, 1.0 ),
+    vec4(  0.5,  0.5, -0.5, 1.0 ),
+    vec4(  0.5, -0.5, -0.5, 1.0 )
+];
+    var indices = [ a, b, c, a, c, d ];
+    var t1 = subtract(vertices[b], vertices[a]);
+    var t2 = subtract(vertices[c], vertices[a]);
+    var normal = vec4(normalize(cross(t2,t1)));
+    normal[3] = 0;
+    for ( var i = 0; i < indices.length; ++i ) {
+        pointsArray.push( vertices[indices[i]] );
+        normalsArray.push(normal);
+    }
+}
+
+function drawScenery(mv) {
+    var normalMatrix = [
+        vec3(mv[0][0], mv[0][1], mv[0][2]),
+        vec3(mv[1][0], mv[1][1], mv[1][2]),
+        vec3(mv[2][0], mv[2][1], mv[2][2])
+    ];
+    mv = mult( mv, scalem(10,0.5,10));
+    mv = mult( mv, translate(0.0, -0.85, 0.0));
+    mv = mult( mv, rotateX(180));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+    gl.uniformMatrix3fv(normalMatrixLoc, false, flatten(normalMatrix) );
+    gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW );
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW);
+    gl.drawArrays( gl.TRIANGLES, 0, pointsArray.length);
+    
+}
+
+
 
 class Player {
     constructor() {
@@ -206,8 +252,9 @@ class Player {
         this.normals = plyData.normals;
     }
 
-    draw() {
-        var mv = mult( modelViewMatrix, translate(this.x, this.y + this.animY, this.z));
+    draw(mv) {
+        mv = mult( mv, translate(this.x, this.y + this.animY, this.z));
+        //mv = mult( mv, translate( 0.0, this.y + this.animY, 0.0));
         mv = mult( mv, rotateX(-90));
         mv = mult( mv, scalem(0.5,0.5,0.5));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
