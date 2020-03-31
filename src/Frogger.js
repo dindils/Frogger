@@ -43,6 +43,7 @@ var then = 0; // seinasti tími sem kallað var á render
 
 var player;
 var PR;
+const PLAYERMODELLOC = "frog_smooth.ply"
 window.onload = function init() {
 
     canvas = document.getElementById( "gl-canvas" );
@@ -199,7 +200,7 @@ class Player {
         this.desiredX = 0.0;
         this.desiredZ = 0.0;
         
-        var plyData = PR.read("steering.ply");
+        var plyData = PR.read(PLAYERMODELLOC);
 
         this.points = plyData.points;
         this.normals = plyData.normals;
@@ -208,6 +209,7 @@ class Player {
 
     draw() {
         var mv = mult( modelViewMatrix, translate(this.x, this.y + this.animY, this.z));
+        mv = mult( mv, rotateX(-90))
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW );
