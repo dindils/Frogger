@@ -39,6 +39,8 @@ var eye;
 var at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
 
+var then = 0; // seinasti tími sem kallað var á render
+
 var player;
 var PR;
 window.onload = function init() {
@@ -120,10 +122,10 @@ window.onload = function init() {
     window.addEventListener("keydown", function(e){
         switch( e.keyCode ) {
             case 37:	// vinstri ör
-                player.move(-1, 0);
+                player.move(1, 0);
                 break;
             case 39:	// hægri ör
-                player.move(1, 0);
+                player.move(-1, 0);
                 break;
             case 38:	// upp ör
                 player.move(0, 1);
@@ -160,7 +162,10 @@ window.onload = function init() {
 }
 
 
-function render() {
+function render(now) {
+    now *= 0.001; // breytum í sekúndur
+    var deltaTime = now - then;
+    then = now; // geymum núverandi tímann
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -178,6 +183,7 @@ function render() {
     gl.uniformMatrix3fv(normalMatrixLoc, false, flatten(normalMatrix) );
 
     player.draw();
+    player.update(deltaTime);
 
     //gl.drawArrays( gl.TRIANGLES, 0, points.length );
     window.requestAnimFrame(render);
@@ -188,6 +194,10 @@ class Player {
         this.x = 0.0;
         this.y = 0.0;
         this.z = 0.0;
+        this.animJumping = false;
+        this.animY = 0.0;
+        this.desiredX = 0.0;
+        this.desiredZ = 0.0;
         
         var plyData = PR.read("steering.ply");
 
@@ -197,7 +207,8 @@ class Player {
     }
 
     draw() {
-        var mv = mult( modelViewMatrix, translate(this.x, this.y, this.z));
+        var mv = mult( modelViewMatrix, translate(this.x, this.y + this.animY, this.z));
+        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW );
 
@@ -207,8 +218,28 @@ class Player {
         gl.drawArrays( gl.TRIANGLES, 0, this.points.length );
     }
 
+    update(delta) {
+        if(this.animJumping) {
+            this.animY = Math.fround(Math.abs(Math.sin(this.x*3.14)+Math.sin(this.z*3.14)));
+            if(Math.abs(this.x-this.desiredX)>0.001) {
+                this.x = this.x + (this.desiredX - this.x)/Math.abs(this.desiredX - this.x)*delta;
+            }
+            else if(Math.abs(this.z-this.desiredZ)>0.001) {
+                this.z = this.z + (this.desiredZ - this.z)/Math.abs(this.desiredZ - this.z)*delta;
+            } else {
+                this.animY = 0.0;
+                this.x = Math.round(this.x);
+                this.z = Math.round(this.z);
+                this.animJumping = false;
+            }
+        }
+    }
+
     move(x, z) {
-        this.x += x;
-        this.z += z;
+        if(!this.animJumping) {
+            this.desiredX = Math.round(this.x) + x;
+            this.desiredZ = Math.round(this.z) + z;
+            this.animJumping = true;
+        }
     }
 }
