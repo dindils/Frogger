@@ -405,10 +405,43 @@ class Environment {
 
         //river
         this.noPointsX = 14;
-        this.noPointsZ = 10;
+        this.noPointsZ = 12;
         this.riverPoints = [];
         this.riverNormals = [];
         this.generateRiver();
+
+        //grass
+        this.grassPoints = [vec4(13.0, 0.0, 2.0, 1.0), vec4(0.0, 0.0, 2.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0),
+                            vec4(0.0, 0.0, 2.0, 1.0), vec4(0.0, 0.0, -5.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0),
+                            vec4(13.0, 0.0, 8.0, 1.0), vec4(0.0, 0.0, 8.0, 1.0), vec4(13.0, 0.0, 7.0, 1.0),
+                            vec4(0.0, 0.0, 8.0, 1.0), vec4(0.0, 0.0, 7.0, 1.0), vec4(13.0, 0.0, 7.0, 1.0),
+                            vec4(13.0, 0.0, 18.0, 1.0), vec4(0.0, 0.0, 18.0, 1.0), vec4(13.0, 0.0, 13.0, 1.0),
+                            vec4(0.0, 0.0, 18.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(13.0, 0.0, 13.0, 1.0),
+                            vec4(13.0, 0.0, 13.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(13.0, -1.0, 13.0, 1.0),
+                            vec4(0.0, -1.0, 13.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(13.0, -1.0, 13.0, 1.0)];
+        this.grassNormals = [vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
+                            vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
+                            vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
+                            vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
+                            vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
+                            vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
+                            vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0),
+                            vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0)];
+    }
+
+    drawGrass(mv) {
+        setColor(vec4( 0.1, 0.2, 0.1, 1.0 ), vec4( 0.0, 0.8, 0.0, 1.0 ),
+                 vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0, program);
+        mv = mult( mv, translate(-6.5, 0, -0.5));
+        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+        setNormalMatrix(mv);
+        gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(this.grassNormals), gl.STATIC_DRAW );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.grassPoints), gl.STATIC_DRAW);
+
+        gl.drawArrays( gl.TRIANGLES, 0, this.grassPoints.length );
     }
 
     drawRoad(mv) {
@@ -450,7 +483,7 @@ class Environment {
         gl.uniform1f( gl.getUniformLocation(waterprogram, "time"), time );
         setColor(vec4( 0.0, 0.0, 0.1, 1.0 ), vec4( 0.0, 0.5, 1.0, 1.0 ),
         vec4( 0.4, 0.4, 0.4, 1.0 ), 100.0, waterprogram);
-        mv = mult( mv, translate(-6.5, -0.2, 7.5));
+        mv = mult( mv, translate(-6.5, -0.18, 7.5));
         mv = mult( mv, scalem(1, 1, 0.5));
         gl.uniformMatrix4fv(gl.getUniformLocation(waterprogram, "modelViewMatrix"), false, flatten(mv) );
         var normalMatrix = [
@@ -471,6 +504,7 @@ class Environment {
     }
 
     draw(mv, now) {
+        this.drawGrass(mv);
         this.drawRoad(mv);
         this.drawRiver(mv, now);
     }
