@@ -377,7 +377,7 @@ class Car {
 
     draw(mv) {
         setColor( this.diffuse, this.color,
-                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
         mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
         mv = mult( mv, scalem(this.length, this.height, this.width))
         
@@ -405,7 +405,7 @@ class Environment {
 
         //river
         this.noPointsX = 14;
-        this.noPointsZ = 5;
+        this.noPointsZ = 10;
         this.riverPoints = [];
         this.riverNormals = [];
         this.generateRiver();
@@ -448,9 +448,10 @@ class Environment {
     drawRiver(mv, time) {
         gl.useProgram( waterprogram );
         gl.uniform1f( gl.getUniformLocation(waterprogram, "time"), time );
-        setColor(vec4( 0.1, 0.1, 0.3, 1.0 ), vec4( 0.0, 0.5, 1.0, 1.0 ),
-        vec4( 1.0, 1.0, 1.0, 0.0 ), 20.0, waterprogram);
-        mv = mult( mv, translate(-6.5, -0.2, 6.5));
+        setColor(vec4( 0.0, 0.0, 0.1, 1.0 ), vec4( 0.0, 0.5, 1.0, 1.0 ),
+        vec4( 0.4, 0.4, 0.4, 1.0 ), 100.0, waterprogram);
+        mv = mult( mv, translate(-6.5, -0.2, 7.5));
+        mv = mult( mv, scalem(1, 1, 0.5));
         gl.uniformMatrix4fv(gl.getUniformLocation(waterprogram, "modelViewMatrix"), false, flatten(mv) );
         var normalMatrix = [
             vec3(mv[0][0], mv[0][1], mv[0][2]),
