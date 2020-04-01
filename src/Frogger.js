@@ -244,7 +244,7 @@ class Player {
 
     update(delta) {
         if(this.animJumping) {
-            this.animY = Math.fround(Math.abs(Math.sin(this.x*Math.PI)+Math.sin(this.z*Math.PI)));
+            this.animY = Math.fround(Math.abs(Math.sin((this.x-this.desiredX)*Math.PI)+Math.sin(this.z*Math.PI)));
             if(Math.abs(this.x-this.desiredX)>0.01) {
                 this.x = this.x + (this.desiredX - this.x)/Math.abs(this.desiredX - this.x)*delta*this.speed;
             }
@@ -252,16 +252,17 @@ class Player {
                 this.z = this.z + (this.desiredZ - this.z)/Math.abs(this.desiredZ - this.z)*delta*this.speed;
             } else {
                 this.animY = 0.0;
-                this.x = Math.round(this.x);
                 this.z = Math.round(this.z);
                 this.animJumping = false;
             }
+        } else {
+            // this.x += 0.01; //move on log
         }
     }
 
     move(x, z) {
         if(!this.animJumping) {
-            this.desiredX = Math.round(this.x) + x;
+            this.desiredX = this.x + x;
             this.desiredZ = Math.round(this.z) + z;
             this.animJumping = true;
         }
