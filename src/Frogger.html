@@ -59,6 +59,45 @@ void main()
 }
 </script>
 
+<script id="water-vertex-shader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec3 N, L, E;
+uniform float time;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform mat3 normalMatrix;
+
+float height(in float x, in float z) {
+    return sin(x+z+time)/10.0;
+}
+
+void main()
+{
+    vec4 vPos = vPosition;
+    vPos.y = height(vPos.x, vPos.z);
+    // calculate normal for position
+    float above = height(vPos.x, vPos.z+0.01);
+    float beside = height(vPos.x+0.01, vPos.z);
+    vec3 a = vec3(vPos.x, above, vPos.z+0.01) - vPos.xyz;
+    vec3 b = vec3(vPos.x+0.01, beside, vPos.z) - vPos.xyz;
+    vec3 vNormal = cross(a, b);
+
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+
+    // check for directional light
+    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+    else L = normalize( lightPosition.xyz - pos );
+
+    E =  -normalize(pos);
+    N = normalize( normalMatrix*vNormal.xyz);
+
+
+    gl_Position = projectionMatrix * modelViewMatrix * vPos;
+
+}
+</script>
+
 <script type="text/javascript" src="../Common/webgl-utils.js"></script>
 <script type="text/javascript" src="../Common/initShaders.js"></script>
 <script type="text/javascript" src="../Common/MV.js"></script>
