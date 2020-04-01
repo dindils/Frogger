@@ -175,15 +175,12 @@ function render(now) {
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    modelViewMatrix = lookAt( vec3(player.x, 3.0, player.z + zDist), vec3(player.x, 0.0, player.z), up );
-    modelViewMatrix = mult( modelViewMatrix, rotateY( -spinY ) );
-    modelViewMatrix = mult( modelViewMatrix, rotateX( spinX ) );
-
+    modelViewMatrix = lookAt( vec3( 0.0, 3.0, zDist), vec3( 0.0, 0.0, 0.0 ), up );
     player.draw(modelViewMatrix);
     player.update(deltaTime);
+    modelViewMatrix = mult( modelViewMatrix, translate(-player.x, 0.0, -player.z));
     environment.draw(modelViewMatrix);
 
-    //gl.drawArrays( gl.TRIANGLES, 0, points.length );
     window.requestAnimFrame(render);
 }
 
@@ -228,7 +225,7 @@ class Player {
         setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
 
-        mv = mult( mv, translate(this.x, this.y + this.animY + 0.1, this.z));
+        mv = mult( mv, translate( 0.0, this.y + this.animY + 0.1, 0.0 ));
         mv = mult( mv, scalem(0.5, 0.5, 0.5));
         mv = mult( mv, rotateX(-85));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
