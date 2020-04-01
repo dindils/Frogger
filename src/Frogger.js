@@ -22,8 +22,8 @@ var far = 100.0;
 
 var program;
 
-var lightPosition = vec4(10.0, 40.0, 10.0, 1.0 );
-var lightAmbient = vec4(1.0, 1.0, 1.0, 1.0 );
+var lightPosition = vec4( 10.0, 20.0, -10.0, 1.0 );
+var lightAmbient = vec4( 1.0, 1.0, 1.0, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
 var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
 
@@ -261,13 +261,12 @@ class Player {
         this.animY = 0.0;
         this.desiredX = 0.0;
         this.desiredZ = 0.0;
-        this.speed = 2;
+        this.speed = 3;
         
         var plyData = PR.read(PLAYERMODELLOC);
 
         this.points = plyData.points;
         this.normals = plyData.normals;
-
     }
 
     draw(mv) {
@@ -317,15 +316,26 @@ class Player {
 
 class Car {
     constructor(lane, x) {
+        this.isEveryColor = true;
         this.x = x;
         this.y = 0.0;
         this.z = lane + 1;
-        this.lane = lane
-        this.length = 1.6;
+        this.lane = lane;
+        this.length = 1.0;
         this.width = 0.6;
         this.height = 0.4;
         this.speed = 0.03*lane - 0.01;
         this.direction = (lane%2)*2-1;
+        this.colors = [ vec4(1.0, 1.0, 0.0, 1,0),
+                        vec4(1.0, 0.0, 0.0, 1,0),
+                        vec4(0.0, 0.0, 1.0, 1,0),
+                        ];
+        this.diffuses = [];
+        this.colors.forEach(color => {
+            this.diffuses.push(scale(0.1,color));
+        });
+        this.newColor();
+
     }
 
     update(delta) {
@@ -333,15 +343,29 @@ class Car {
             this.x = this.x + this.direction*delta*this.speed;
         }
         
-        if(this.x <= -6.5 - this.length/2 && this.direction == -1)
+        if(this.x <= -6.5 - this.length/2 && this.direction == -1){
             this.x = 6.5 + this.length/2;
-        if(this.x >= 6.5 + this.length/2 && this.direction == 1)
+            this.newColor();
+        }
+        if(this.x >= 6.5 + this.length/2 && this.direction == 1){
             this.x = -6.5 - this.length/2;
-            
+            this.newColor();
+        }
+    }
+    newColor() {
+        if(this.isEveryColor){
+            this.color = vec4( Math.random(), Math.random(), Math.random(), 1.0);
+            this.diffuse = scale(0.1, this.color);
+        }
+        else {
+            var i = Math.floor(Math.random()*this.colors.length);
+            this.color = this.colors[i];
+            this.diffuse = this.diffuses[i];
+        }
     }
 
     draw(mv) {
-        setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
+        setColor( this.diffuse, this.color,
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
         mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
         mv = mult( mv, scalem(this.length, this.height, this.width))
