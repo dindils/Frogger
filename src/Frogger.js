@@ -69,7 +69,7 @@ window.onload = function init() {
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
     specularProduct = mult(lightSpecular, materialSpecular);
 
-    colorCube()
+    cube()
 
     nBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
@@ -181,7 +181,7 @@ function render(now) {
     window.requestAnimFrame(render);
 }
 
-function colorCube()
+function cube()
 {
     quad( 1, 0, 3, 2 );
     quad( 2, 3, 7, 6 );
