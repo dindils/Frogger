@@ -20,7 +20,7 @@ var far = 100.0;
 
 var program;
 
-var lightPosition = vec4(10.0, 10.0, 10.0, 1.0 );
+var lightPosition = vec4(10.0, 40.0, 10.0, 1.0 );
 var lightAmbient = vec4(1.0, 1.0, 1.0, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
 var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
@@ -119,7 +119,7 @@ window.onload = function init() {
     canvas.addEventListener("mousemove", function(e){
         if(movement) {
     	    spinY = ( spinY + (e.clientX - origX) ) % 360;
-            spinX = ( spinX + (e.clientY - origY) ) % 360;
+            //spinX = ( spinX + (e.clientY - origY) ) % 360;
             origX = e.clientX;
             origY = e.clientY;
         }
@@ -158,9 +158,9 @@ window.onload = function init() {
     // Event listener for mousewheel
      window.addEventListener("wheel", function(e){
          if( e.deltaY > 0.0 ) {
-             zDist += 0.2;
+             //zDist += 0.2;
          } else {
-             zDist -= 0.2;
+             //zDist -= 0.2;
          }
      }  );
 
@@ -175,22 +175,13 @@ function render(now) {
 
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    modelViewMatrix = lookAt( vec3(0.0, 0.0, zDist), at, up );
+    modelViewMatrix = lookAt( vec3(player.x, 3.0, player.z + zDist), vec3(player.x, 0.0, player.z), up );
     modelViewMatrix = mult( modelViewMatrix, rotateY( -spinY ) );
     modelViewMatrix = mult( modelViewMatrix, rotateX( spinX ) );
 
-    normalMatrix = [
-        vec3(modelViewMatrix[0][0], modelViewMatrix[0][1], modelViewMatrix[0][2]),
-        vec3(modelViewMatrix[1][0], modelViewMatrix[1][1], modelViewMatrix[1][2]),
-        vec3(modelViewMatrix[2][0], modelViewMatrix[2][1], modelViewMatrix[2][2])
-    ];
-
-    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix) );
-    gl.uniformMatrix3fv(normalMatrixLoc, false, flatten(normalMatrix) );
-
-    player.draw();
+    player.draw(modelViewMatrix);
     player.update(deltaTime);
-    environment.draw();
+    environment.draw(modelViewMatrix);
 
     //gl.drawArrays( gl.TRIANGLES, 0, points.length );
     window.requestAnimFrame(render);
@@ -206,6 +197,15 @@ function setColor(mA, mD, mSp, mSh) {
     gl.uniform1f( gl.getUniformLocation(program, "shininess"), mSh );
 }
 
+function setNormalMatrix(mv) {
+    var normalMatrix = [
+        vec3(mv[0][0], mv[0][1], mv[0][2]),
+        vec3(mv[1][0], mv[1][1], mv[1][2]),
+        vec3(mv[2][0], mv[2][1], mv[2][2])
+    ];
+    gl.uniformMatrix3fv(normalMatrixLoc, false, flatten(normalMatrix) );
+}
+
 class Player {
     constructor() {
         this.x = 0.0;
@@ -215,6 +215,7 @@ class Player {
         this.animY = 0.0;
         this.desiredX = 0.0;
         this.desiredZ = 0.0;
+        this.speed = 2;
         
         var plyData = PR.read(PLAYERMODELLOC);
 
@@ -223,14 +224,15 @@ class Player {
 
     }
 
-    draw() {
+    draw(mv) {
         setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
 
-        var mv = mult( modelViewMatrix, translate(this.x, this.y + this.animY + 0.1, this.z));
-        mv = mult(mv, scalem(0.5, 0.5, 0.5));
+        mv = mult( mv, translate(this.x, this.y + this.animY + 0.1, this.z));
+        mv = mult( mv, scalem(0.5, 0.5, 0.5));
         mv = mult( mv, rotateX(-85));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+        setNormalMatrix(mv);
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW );
 
@@ -242,12 +244,12 @@ class Player {
 
     update(delta) {
         if(this.animJumping) {
-            this.animY = Math.fround(Math.abs(Math.sin(this.x*3.14)+Math.sin(this.z*3.14)));
-            if(Math.abs(this.x-this.desiredX)>0.001) {
-                this.x = this.x + (this.desiredX - this.x)/Math.abs(this.desiredX - this.x)*delta;
+            this.animY = Math.fround(Math.abs(Math.sin(this.x*Math.PI)+Math.sin(this.z*Math.PI)));
+            if(Math.abs(this.x-this.desiredX)>0.01) {
+                this.x = this.x + (this.desiredX - this.x)/Math.abs(this.desiredX - this.x)*delta*this.speed;
             }
-            else if(Math.abs(this.z-this.desiredZ)>0.001) {
-                this.z = this.z + (this.desiredZ - this.z)/Math.abs(this.desiredZ - this.z)*delta;
+            else if(Math.abs(this.z-this.desiredZ)>0.01) {
+                this.z = this.z + (this.desiredZ - this.z)/Math.abs(this.desiredZ - this.z)*delta*this.speed;
             } else {
                 this.animY = 0.0;
                 this.x = Math.round(this.x);
@@ -268,22 +270,19 @@ class Player {
 
 class Environment {
     constructor() {
-        this.roadPoints = [vec4(13.0, 0.0, 5.0, 1.0), vec4(-13.0, 0.0, 5.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0),
-                           vec4(-13.0, 0.0, 5.0, 1.0), vec4(-13.0, 0.0, -5.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0)];
+        this.roadPoints = [vec4(13.0, 0.0, 5.0, 1.0), vec4(0.0, 0.0, 5.0, 1.0), vec4(13.0, 0.0, 0.0, 1.0),
+                           vec4(0.0, 0.0, 5.0, 1.0), vec4(0.0, 0.0, 0.0, 1.0), vec4(13.0, 0.0, 0.0, 1.0)];
         this.roadNormals = [vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
                             vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0)];
-
+        this.roadTexCoords = [];
     }
 
-    drawRoad() {
-
-    }
-
-    draw() {
-        setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.5, 0.5, 0.0, 1.0 ),
-                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
-        var mv = mult( modelViewMatrix, translate(0, 0, 6));
+    drawRoad(mv) {
+        setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ),
+                 vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0);
+        mv = mult( mv, translate(-6.5, 0, 1.5));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+        setNormalMatrix(mv);
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.roadNormals), gl.STATIC_DRAW );
 
@@ -291,5 +290,9 @@ class Environment {
         gl.bufferData(gl.ARRAY_BUFFER, flatten(this.roadPoints), gl.STATIC_DRAW);
 
         gl.drawArrays( gl.TRIANGLES, 0, this.roadPoints.length );
+    }
+
+    draw(mv) {
+        this.drawRoad(mv);
     }
 }
