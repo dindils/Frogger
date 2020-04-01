@@ -18,6 +18,8 @@ var fovy = 60.0;
 var near = 0.2;
 var far = 100.0;
 
+var program;
+
 var lightPosition = vec4(10.0, 10.0, 10.0, 1.0 );
 var lightAmbient = vec4(1.0, 1.0, 1.0, 1.0 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
@@ -42,8 +44,10 @@ var up = vec3(0.0, 1.0, 0.0);
 var then = 0; // seinasti tími sem kallað var á render
 
 var player;
+var environment;
 var PR;
 const PLAYERMODELLOC = "frog_smooth.ply"
+
 window.onload = function init() {
 
     canvas = document.getElementById( "gl-canvas" );
@@ -60,8 +64,9 @@ window.onload = function init() {
 
     PR = PlyReader();
     player = new Player();
+    environment = new Environment();
 
-    var program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
 
 
@@ -185,9 +190,20 @@ function render(now) {
 
     player.draw();
     player.update(deltaTime);
+    environment.draw();
 
     //gl.drawArrays( gl.TRIANGLES, 0, points.length );
     window.requestAnimFrame(render);
+}
+
+function setColor(mA, mD, mSp, mSh) {
+    ambientProduct = mult(lightAmbient, mA);
+    diffuseProduct = mult(lightDiffuse, mD);
+    specularProduct = mult(lightSpecular, mSp);
+    gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct) );
+    gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct) );
+    gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct) );
+    gl.uniform1f( gl.getUniformLocation(program, "shininess"), mSh );
 }
 
 class Player {
@@ -208,8 +224,12 @@ class Player {
     }
 
     draw() {
-        var mv = mult( modelViewMatrix, translate(this.x, this.y + this.animY, this.z));
-        mv = mult( mv, rotateX(-90))
+        setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
+
+        var mv = mult( modelViewMatrix, translate(this.x, this.y + this.animY + 0.1, this.z));
+        mv = mult(mv, scalem(0.5, 0.5, 0.5));
+        mv = mult( mv, rotateX(-85));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW );
@@ -243,5 +263,33 @@ class Player {
             this.desiredZ = Math.round(this.z) + z;
             this.animJumping = true;
         }
+    }
+}
+
+class Environment {
+    constructor() {
+        this.roadPoints = [vec4(13.0, 0.0, 5.0, 1.0), vec4(-13.0, 0.0, 5.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0),
+                           vec4(-13.0, 0.0, 5.0, 1.0), vec4(-13.0, 0.0, -5.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0)];
+        this.roadNormals = [vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
+                            vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0)];
+
+    }
+
+    drawRoad() {
+
+    }
+
+    draw() {
+        setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.5, 0.5, 0.0, 1.0 ),
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
+        var mv = mult( modelViewMatrix, translate(0, 0, 6));
+        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+        gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(this.roadNormals), gl.STATIC_DRAW );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.roadPoints), gl.STATIC_DRAW);
+
+        gl.drawArrays( gl.TRIANGLES, 0, this.roadPoints.length );
     }
 }
