@@ -78,14 +78,13 @@ window.onload = function init() {
 
     environment = new Environment();
 
-    program = initShaders( gl, "vertex-shader", "fragment-shader" );
-    gl.useProgram( program );
-
-
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
     specularProduct = mult(lightSpecular, materialSpecular);
+    projectionMatrix = perspective( fovy, 1.0, near, far );
 
+    program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    gl.useProgram( program );
 
     nBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
@@ -103,18 +102,30 @@ window.onload = function init() {
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
 
+    waterprogram = initShaders( gl, "water-vertex-shader", "fragment-shader");
+    gl.useProgram(waterprogram)
+
+    gl.uniformMatrix4fv(gl.getUniformLocation(waterprogram, "projectionMatrix"), false, flatten(projectionMatrix) )
+    gl.uniform4fv( gl.getUniformLocation(waterprogram, "lightPosition"), flatten(lightPosition) );
+
+    // gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+    // vNormal = gl.getAttribLocation( program, "vNormal" );
+    // gl.vertexAttribPointer( vNormal, 4, gl.FLOAT, false, 0, 0 );
+    // gl.enableVertexAttribArray( vNormal);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+    vPosition = gl.getAttribLocation( program, "vPosition");
+    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPosition);
+
+    gl.useProgram(program);
+
     modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
     projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
     normalMatrixLoc = gl.getUniformLocation( program, "normalMatrix" );
 
-    projectionMatrix = perspective( fovy, 1.0, near, far );
-    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix) );
-
-    gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct) );
-    gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct) );
-    gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct) );
+    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix) )
     gl.uniform4fv( gl.getUniformLocation(program, "lightPosition"), flatten(lightPosition) );
-    gl.uniform1f( gl.getUniformLocation(program, "shininess"), materialShininess );
 
     //event listeners for mouse
     canvas.addEventListener("mousedown", function(e){
@@ -179,7 +190,6 @@ window.onload = function init() {
     render();
 }
 
-
 function render(now) {
     now *= 0.001; // breytum í sekúndur
     var deltaTime = now - then;
@@ -191,7 +201,7 @@ function render(now) {
     player.draw(modelViewMatrix);
     player.update(deltaTime);
     modelViewMatrix = mult( modelViewMatrix, translate(-player.x, 0.0, -player.z));
-    environment.draw(modelViewMatrix);
+    environment.draw(modelViewMatrix, now);
     for(var i = 0; i < cars.length; i++) {
         cars[i].draw(modelViewMatrix);
         cars[i].update(deltaTime);
@@ -233,14 +243,15 @@ function quad(a, b, c, d)
         cubeNormals.push(normal);
     }
 }
-function setColor(mA, mD, mSp, mSh) {
+
+function setColor(mA, mD, mSp, mSh, p) {
     ambientProduct = mult(lightAmbient, mA);
     diffuseProduct = mult(lightDiffuse, mD);
     specularProduct = mult(lightSpecular, mSp);
-    gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct) );
-    gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct) );
-    gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct) );
-    gl.uniform1f( gl.getUniformLocation(program, "shininess"), mSh );
+    gl.uniform4fv( gl.getUniformLocation(p, "ambientProduct"), flatten(ambientProduct) );
+    gl.uniform4fv( gl.getUniformLocation(p, "diffuseProduct"), flatten(diffuseProduct) );
+    gl.uniform4fv( gl.getUniformLocation(p, "specularProduct"), flatten(specularProduct) );
+    gl.uniform1f( gl.getUniformLocation(p, "shininess"), mSh );
 }
 
 function setNormalMatrix(mv) {
@@ -271,7 +282,7 @@ class Player {
 
     draw(mv) {
         setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
-                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
 
         mv = mult( mv, translate( 0.0, this.y + this.animY + 0.1, 0.0 ));
         mv = mult( mv, scalem(0.5, 0.5, 0.5));
@@ -385,16 +396,24 @@ class Car {
 
 class Environment {
     constructor() {
+        //road
         this.roadPoints = [vec4(13.0, 0.0, 5.0, 1.0), vec4(0.0, 0.0, 5.0, 1.0), vec4(13.0, 0.0, 0.0, 1.0),
                            vec4(0.0, 0.0, 5.0, 1.0), vec4(0.0, 0.0, 0.0, 1.0), vec4(13.0, 0.0, 0.0, 1.0)];
         this.roadNormals = [vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
                             vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0)];
         this.roadTexCoords = [];
+
+        //river
+        this.noPointsX = 14;
+        this.noPointsZ = 5;
+        this.riverPoints = [];
+        this.riverNormals = [];
+        this.generateRiver();
     }
 
     drawRoad(mv) {
         setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ),
-                 vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0);
+                 vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0, program);
         mv = mult( mv, translate(-6.5, 0, 1.5));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         setNormalMatrix(mv);
@@ -407,7 +426,51 @@ class Environment {
         gl.drawArrays( gl.TRIANGLES, 0, this.roadPoints.length );
     }
 
-    draw(mv) {
+    generateRiver() {
+        for (var j = 0; j < this.noPointsZ-1; j++) {
+            for(var i=0; i < this.noPointsX; i++) {
+                if(i==0) {
+                    this.riverPoints.push(vec4(i, 0, j, 1));
+                    this.riverNormals.push(vec4(0, 1, 0, 0));
+                }
+                this.riverPoints.push(vec4(i, 0, j, 1));
+                this.riverPoints.push(vec4(i, 0, j+1, 1));
+                this.riverNormals.push(vec4(0, 1, 0, 0));
+                this.riverNormals.push(vec4(0, 1, 0, 0));
+                if(i==this.noPointsX-1) {
+                    this.riverPoints.push(vec4(i, 0, j+1, 1));
+                    this.riverNormals.push(vec4(0, 1, 0, 0));
+                }
+            }
+        }
+    }
+
+    drawRiver(mv, time) {
+        gl.useProgram( waterprogram );
+        gl.uniform1f( gl.getUniformLocation(waterprogram, "time"), time );
+        setColor(vec4( 0.1, 0.1, 0.3, 1.0 ), vec4( 0.0, 0.5, 1.0, 1.0 ),
+        vec4( 1.0, 1.0, 1.0, 0.0 ), 20.0, waterprogram);
+        mv = mult( mv, translate(-6.5, -0.2, 6.5));
+        gl.uniformMatrix4fv(gl.getUniformLocation(waterprogram, "modelViewMatrix"), false, flatten(mv) );
+        var normalMatrix = [
+            vec3(mv[0][0], mv[0][1], mv[0][2]),
+            vec3(mv[1][0], mv[1][1], mv[1][2]),
+            vec3(mv[2][0], mv[2][1], mv[2][2])
+        ];
+        gl.uniformMatrix3fv(gl.getUniformLocation(waterprogram, "normalMatrix"), false, flatten(normalMatrix) );
+        //gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+        //gl.bufferData( gl.ARRAY_BUFFER, flatten(this.riverNormals), gl.STATIC_DRAW );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.riverPoints), gl.STATIC_DRAW);
+
+        gl.drawArrays( gl.TRIANGLE_STRIP, 0, this.riverPoints.length );
+
+        gl.useProgram( program );
+    }
+
+    draw(mv, now) {
         this.drawRoad(mv);
+        this.drawRiver(mv, now);
     }
 }
