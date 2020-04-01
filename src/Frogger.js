@@ -3,8 +3,10 @@ var gl;
 
 var nBuffer, vBuffer;
 
-var pointsArray = [];
-var normalsArray = [];
+var cubePoints = [];
+var cubeNormals = [];
+
+var now = 0.0;
 
 var movement = false;     // Do we rotate?
 var spinX = 0;
@@ -44,6 +46,7 @@ var up = vec3(0.0, 1.0, 0.0);
 var then = 0; // seinasti tími sem kallað var á render
 
 var player;
+var cars = [];
 var environment;
 var PR;
 const PLAYERMODELLOC = "frog_smooth.ply"
@@ -51,6 +54,8 @@ const PLAYERMODELLOC = "frog_smooth.ply"
 window.onload = function init() {
 
     canvas = document.getElementById( "gl-canvas" );
+
+    colorCube();
 
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebGL isn't available" ); }
@@ -64,6 +69,13 @@ window.onload = function init() {
 
     PR = PlyReader();
     player = new Player();
+
+    for(var i = 1; i < 5; i++){
+        for(var j = 0; j < 4; j++){
+            cars.push(new Car(i, j*13.0/4 - 6.5));
+        }
+    }
+
     environment = new Environment();
 
     program = initShaders( gl, "vertex-shader", "fragment-shader" );
@@ -180,10 +192,47 @@ function render(now) {
     player.update(deltaTime);
     modelViewMatrix = mult( modelViewMatrix, translate(-player.x, 0.0, -player.z));
     environment.draw(modelViewMatrix);
-
+    for(var i = 0; i < cars.length; i++) {
+        cars[i].draw(modelViewMatrix);
+        cars[i].update(deltaTime);
+    }
     window.requestAnimFrame(render);
 }
 
+function colorCube()
+{
+    quad( 1, 0, 3, 2 );
+    quad( 2, 3, 7, 6 );
+    quad( 3, 0, 4, 7 );
+    quad( 6, 5, 1, 2 );
+    quad( 4, 5, 6, 7 );
+    quad( 5, 4, 0, 1 );
+}
+
+function quad(a, b, c, d) 
+{
+    var vertices = [
+        vec4( -0.5, -0.5,  0.5 , 1.0 ),
+        vec4( -0.5,  0.5,  0.5 , 1.0 ),
+        vec4(  0.5,  0.5,  0.5 , 1.0 ),
+        vec4(  0.5, -0.5,  0.5 , 1.0 ),
+        vec4( -0.5, -0.5, -0.5 , 1.0 ),
+        vec4( -0.5,  0.5, -0.5 , 1.0 ),
+        vec4(  0.5,  0.5, -0.5 , 1.0 ),
+        vec4(  0.5, -0.5, -0.5 , 1.0 )
+    ];
+
+
+    var indices = [ a, b, c, a, c, d ];
+    var t2 = subtract(vertices[b], vertices[a]);
+    var t1 = subtract(vertices[c], vertices[a]);
+    var normal = vec4(normalize(cross(t2,t1)));
+    normal[3] = 0;
+    for ( var i = 0; i < indices.length; ++i ) {
+        cubePoints.push( vertices[indices[i]] );
+        cubeNormals.push(normal);
+    }
+}
 function setColor(mA, mD, mSp, mSh) {
     ambientProduct = mult(lightAmbient, mA);
     diffuseProduct = mult(lightDiffuse, mD);
@@ -265,6 +314,50 @@ class Player {
         }
     }
 }
+
+class Car {
+    constructor(lane, x) {
+        this.x = x;
+        this.y = 0.0;
+        this.z = lane + 1;
+        this.lane = lane
+        this.length = 1.6;
+        this.width = 0.6;
+        this.height = 0.4;
+        this.speed = 0.03*lane - 0.01;
+        this.direction = (lane%2)*2-1;
+    }
+
+    update(delta) {
+        if(delta =! undefined) {
+            this.x = this.x + this.direction*delta*this.speed;
+        }
+        
+        if(this.x <= -6.5 - this.length/2 && this.direction == -1)
+            this.x = 6.5 + this.length/2;
+        if(this.x >= 6.5 + this.length/2 && this.direction == 1)
+            this.x = -6.5 - this.length/2;
+            
+    }
+
+    draw(mv) {
+        setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0);
+        mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
+        mv = mult( mv, scalem(this.length, this.height, this.width))
+        
+        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+        setNormalMatrix(mv);
+        gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(cubeNormals), gl.STATIC_DRAW );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(cubePoints), gl.STATIC_DRAW);
+
+        gl.drawArrays( gl.TRIANGLES, 0, cubePoints.length );
+    }
+}
+
 
 class Environment {
     constructor() {
