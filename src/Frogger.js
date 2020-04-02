@@ -47,6 +47,7 @@ var then = 0; // seinasti tími sem kallað var á render
 
 var player;
 var cars = [];
+var logs = [];
 var environment;
 var PR;
 const PLAYERMODELLOC = "frog_smooth.ply"
@@ -73,6 +74,11 @@ window.onload = function init() {
     for(var i = 1; i < 5; i++){
         for(var j = 0; j < 4; j++){
             cars.push(new Car(i, j*13.0/4 - 6.5));
+        }
+    }
+    for(var i = 1; i < 6; i++){
+        for(var j = 0; j < 4; j++){
+            logs.push(new Log(i, j*13.0/4 - 6.5));
         }
     }
 
@@ -107,11 +113,6 @@ window.onload = function init() {
 
     gl.uniformMatrix4fv(gl.getUniformLocation(waterprogram, "projectionMatrix"), false, flatten(projectionMatrix) )
     gl.uniform4fv( gl.getUniformLocation(waterprogram, "lightPosition"), flatten(lightPosition) );
-
-    // gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
-    // vNormal = gl.getAttribLocation( program, "vNormal" );
-    // gl.vertexAttribPointer( vNormal, 4, gl.FLOAT, false, 0, 0 );
-    // gl.enableVertexAttribArray( vNormal);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
     vPosition = gl.getAttribLocation( program, "vPosition");
@@ -205,6 +206,10 @@ function render(now) {
     for(var i = 0; i < cars.length; i++) {
         cars[i].draw(modelViewMatrix);
         cars[i].update(deltaTime);
+    }
+    for(var i = 0; i < cars.length; i++) {
+        logs[i].draw(modelViewMatrix);
+        logs[i].update(deltaTime);
     }
     window.requestAnimFrame(render);
 }
@@ -373,6 +378,65 @@ class Car {
             this.color = this.colors[i];
             this.diffuse = this.diffuses[i];
         }
+    }
+
+    draw(mv) {
+        setColor( this.diffuse, this.color,
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
+        mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
+        mv = mult( mv, scalem(this.length, this.height, this.width))
+        
+        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+        setNormalMatrix(mv);
+        gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(cubeNormals), gl.STATIC_DRAW );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(cubePoints), gl.STATIC_DRAW);
+
+        gl.drawArrays( gl.TRIANGLES, 0, cubePoints.length );
+    }
+}
+
+
+class Log {
+    constructor(lane, x) {
+        this.x = x;
+        this.y = -0.4;
+        this.z = lane + 7;
+        this.lane = lane;
+        this.length = Math.floor(1+Math.random()*3);
+        this.width = 0.6;
+        this.height = 0.4;
+        this.speed = 0.03*lane - 0.01;
+        this.direction = (lane%2)*2-1;
+        this.colors = [vec4(73/255, 56/255, 41/255, 1,0)];
+        this.diffuses = [];
+        this.colors.forEach(color => {
+            this.diffuses.push(scale(0.1,color));
+        });
+        this.newColor();
+
+    }
+
+    update(delta) {
+        if(delta =! undefined) {
+            this.x = this.x + this.direction*delta*this.speed;
+        }
+        
+        if(this.x <= -6.5 - this.length/2 && this.direction == -1){
+            this.x = 6.5 + this.length/2;
+            this.newColor();
+        }
+        if(this.x >= 6.5 + this.length/2 && this.direction == 1){
+            this.x = -6.5 - this.length/2;
+            this.newColor();
+        }
+    }
+    newColor() {
+        var i = Math.floor(Math.random()*this.colors.length);
+        this.color = this.colors[i];
+        this.diffuse = this.diffuses[i];
     }
 
     draw(mv) {
