@@ -273,6 +273,7 @@ class Player {
         this.x = 0.0;
         this.y = 0.0;
         this.z = 0.0;
+        this.scale = 0.4
         this.animJumping = false;
         this.animY = 0.0;
         this.desiredX = 0.0;
@@ -322,7 +323,7 @@ class Player {
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
 
         mv = mult( mv, translate( 0.0, this.y + this.animY + 0.1, 0.0 ));
-        mv = mult( mv, scalem(0.4, 0.4, 0.4));
+        mv = mult( mv, scalem(this.scale, this.scale, this.scale));
         mv = mult( mv, rotateX(-85));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         setNormalMatrix(mv);
@@ -336,6 +337,19 @@ class Player {
     }
 
     update(delta) {
+        //check for car collision
+        cars.forEach(car => {
+            if(((car.x-car.length/2<this.x+this.xMin+0.1 && this.x+this.xMin+0.1<car.x+car.length/2)  ||
+                (car.x-car.length/2<this.x+this.xMax-0.1 && this.x+this.xMax-0.1<car.x+car.length/2)) &&
+                Math.abs(this.z-car.z) < 0.01) {
+                this.x = 0.0;
+                this.z = 0.0;
+                this.desiredX = 0.0;
+                this.desiredZ = 0.0;
+                console.log(car.x, car.y, car.z);
+            }
+        });
+
         if(this.animJumping) {
             this.animY = Math.abs(Math.sin((this.x-this.desiredX)*Math.PI)+Math.sin(this.z*Math.PI))/2;
             if(Math.abs(this.x-this.desiredX)>0.01) {
@@ -373,6 +387,8 @@ class Player {
                     if(!onLog) {
                         this.x = 0.0;
                         this.z = 0.0;
+                        this.desiredX = 0.0;
+                        this.desiredZ = 0.0;
                     }
                 }
             }
