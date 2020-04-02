@@ -290,7 +290,7 @@ class Player {
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
 
         mv = mult( mv, translate( 0.0, this.y + this.animY + 0.1, 0.0 ));
-        mv = mult( mv, scalem(0.5, 0.5, 0.5));
+        mv = mult( mv, scalem(0.4, 0.4, 0.4));
         mv = mult( mv, rotateX(-85));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         setNormalMatrix(mv);
@@ -305,12 +305,23 @@ class Player {
 
     update(delta) {
         if(this.animJumping) {
-            this.animY = Math.fround(Math.abs(Math.sin((this.x-this.desiredX)*Math.PI)+Math.sin(this.z*Math.PI)));
+            this.animY = Math.abs(Math.sin((this.x-this.desiredX)*Math.PI)+Math.sin(this.z*Math.PI))/2;
             if(Math.abs(this.x-this.desiredX)>0.01) {
-                this.x = this.x + (this.desiredX - this.x)/Math.abs(this.desiredX - this.x)*delta*this.speed;
+                var newX = this.x + Math.sign(this.desiredX - this.x)*delta*this.speed;
+                if(Math.sign(this.desiredX-newX)!=Math.sign(this.desiredX-this.x)) {
+                    this.x = this.desiredX;
+                } else {
+                    this.x = newX;
+                }
+
             }
             else if(Math.abs(this.z-this.desiredZ)>0.01) {
-                this.z = this.z + (this.desiredZ - this.z)/Math.abs(this.desiredZ - this.z)*delta*this.speed;
+                var newZ = this.z + Math.sign(this.desiredZ - this.z)*delta*this.speed;
+                if(Math.sign(this.desiredZ-newZ)!=Math.sign(this.desiredZ-this.z)) {
+                    this.z = this.desiredZ;
+                } else {
+                    this.z = newZ;
+                }
             } else {
                 this.animY = 0.0;
                 this.z = Math.round(this.z);
