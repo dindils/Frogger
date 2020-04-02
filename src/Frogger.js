@@ -77,8 +77,8 @@ window.onload = function init() {
         }
     }
     for(var i = 1; i < 6; i++){
-        for(var j = 0; j < 4; j++){
-            logs.push(new Log(i, j*13.0/4 - 6.5));
+        for(var j = 0; j < 3; j++){
+            logs.push(new Log(i, j*13.0/3 - 6.5));
         }
     }
 
@@ -278,11 +278,43 @@ class Player {
         this.desiredX = 0.0;
         this.desiredZ = 0.0;
         this.speed = 3;
+        this.logSpeed = 0.0;
+        this.logDirection = 1;
         
         var plyData = PR.read(PLAYERMODELLOC);
 
         this.points = plyData.points;
         this.normals = plyData.normals;
+        this.getBoundaries(); 
+    }
+
+    getBoundaries() {
+        this.xMax = -Infinity;
+        this.yMax = -Infinity;
+        this.zMax = -Infinity;
+        this.xMin =  Infinity;
+        this.yMin =  Infinity;
+        this.zMin =  Infinity;
+        this.points.forEach(point => {
+            var x = point[1];
+            var y = point[2];
+            var z = point[3];
+            if(x > this.xMax) this.xMax = x;
+            if(y > this.yMax) this.yMax = y;
+            if(z > this.zMax) this.zMax = z;
+            if(x < this.xMin) this.xMin = x;
+            if(y < this.yMin) this.yMin = y;
+            if(z < this.zMin) this.zMin = z;
+        });
+        this.xMax *= this.scale;
+        this.yMax *= this.scale;
+        this.zMax *= this.scale;
+        this.xMin *= this.scale;
+        this.yMin *= this.scale;
+        this.zMin *= this.scale;
+        console.log(this.xMin + " " + this.xMax);
+        console.log(this.yMin + " " + this.yMax);
+        console.log(this.zMin + " " + this.zMax);
     }
 
     draw(mv) {
@@ -326,9 +358,33 @@ class Player {
                 this.animY = 0.0;
                 this.z = Math.round(this.z);
                 this.animJumping = false;
+                // if on water area
+                if(this.z>=8 && this.z<=12) {
+                    // check if on log 
+                    var onLog = false;
+                    logs.forEach(log => {
+                        if(log.x-log.length/2<this.x && this.x<log.x+log.length/2 && Math.abs(this.z-log.z) < 0.01) {
+                            // set log speed
+                            this.logSpeed = log.speed;
+                            this.logDirection = log.direction;
+                            onLog = true;
+                        }
+                    });
+                    if(!onLog) {
+                        this.x = 0.0;
+                        this.z = 0.0;
+                    }
+                }
             }
         } else {
-            // this.x += 0.01; //move on log
+            //reset log speed if on land
+            if(!(this.z>=8 && this.z<=12) && this.logSpeed>0.01) {
+                this.logSpeed = 0.0;
+            }
+            if(delta =! undefined && this.logSpeed!=0) {
+                // move frog with the log
+                this.x += this.logSpeed * this.logDirection * delta; //move on log
+            }
         }
     }
 
@@ -416,7 +472,7 @@ class Log {
         this.y = -0.4;
         this.z = lane + 7;
         this.lane = lane;
-        this.length = Math.floor(1+Math.random()*3);
+        this.length = Math.floor(2+Math.random()*2);
         this.width = 0.6;
         this.height = 0.4;
         this.speed = 0.03*lane - 0.01;
