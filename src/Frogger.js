@@ -71,7 +71,7 @@ window.onload = function init() {
     PR = PlyReader();
     player = new Player();
 
-    for(var i = 1; i < 5; i++){
+    for(var i = 1; i < 6; i++){
         for(var j = 0; j < 4; j++){
             cars.push(new Car(i, j*13.0/4 - 6.5));
         }
@@ -207,7 +207,7 @@ function render(now) {
         cars[i].draw(modelViewMatrix);
         cars[i].update(deltaTime);
     }
-    for(var i = 0; i < cars.length; i++) {
+    for(var i = 0; i < logs.length; i++) {
         logs[i].draw(modelViewMatrix);
         logs[i].update(deltaTime);
     }
