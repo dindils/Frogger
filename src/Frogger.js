@@ -595,11 +595,28 @@ class Log {
 class Environment {
     constructor() {
         //road
-        this.roadPoints = [vec4(13.0, 0.0, 5.0, 1.0), vec4(0.0, 0.0, 5.0, 1.0), vec4(13.0, 0.0, 0.0, 1.0),
-                           vec4(0.0, 0.0, 5.0, 1.0), vec4(0.0, 0.0, 0.0, 1.0), vec4(13.0, 0.0, 0.0, 1.0)];
-        this.roadNormals = [vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
-                            vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0)];
+        this.worldWidth = 20;
+        var ww = this.worldWidth;
         this.roadTexCoords = [];
+            
+        this.planePoints = [ vec4( 0.5, 0.0,  0.5, 1.0),
+                        vec4(-0.5, 0.0, -0.5, 1.0),
+                        vec4( 0.5, 0.0, -0.5, 1.0),
+                        vec4( 0.5, 0.0,  0.5, 1.0),
+                        vec4(-0.5, 0.0,  0.5, 1.0),
+                        vec4(-0.5, 0.0, -0.5, 1.0)];
+                     
+        this.planePoints = [
+                            vec4( 0.5, 0.0,  0.5, 1.0),
+                            vec4( 0.5, 0.0, -0.5, 1.0),
+                            vec4(-0.5, 0.0, -0.5, 1.0),
+                            vec4( 0.5, 0.0,  0.5, 1.0),
+                            vec4(-0.5, 0.0, -0.5, 1.0),
+                            vec4(-0.5, 0.0,  0.5, 1.0)];
+        this.planeNormals = [];
+        for(var i = 0; i < 6; i++) {
+            this.planeNormals.push(vec4( 0.0, 1.0, 0.0, 0.0 ));
+        }
 
         //river
         this.noPointsX = 14;
@@ -609,14 +626,14 @@ class Environment {
         this.generateRiver();
         var plyData = PR.read("Tunnel.ply");
         //grass
-        this.grassPoints = [vec4(13.0, 0.0, 2.0, 1.0), vec4(0.0, 0.0, 2.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0),
-                            vec4(0.0, 0.0, 2.0, 1.0), vec4(0.0, 0.0, -5.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0),
-                            vec4(13.0, 0.0, 8.0, 1.0), vec4(0.0, 0.0, 8.0, 1.0), vec4(13.0, 0.0, 7.0, 1.0),
-                            vec4(0.0, 0.0, 8.0, 1.0), vec4(0.0, 0.0, 7.0, 1.0), vec4(13.0, 0.0, 7.0, 1.0),
-                            vec4(13.0, 0.0, 18.0, 1.0), vec4(0.0, 0.0, 18.0, 1.0), vec4(13.0, 0.0, 13.0, 1.0),
-                            vec4(0.0, 0.0, 18.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(13.0, 0.0, 13.0, 1.0),
-                            vec4(13.0, 0.0, 13.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(13.0, -1.0, 13.0, 1.0),
-                            vec4(0.0, -1.0, 13.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(13.0, -1.0, 13.0, 1.0)];
+        this.grassPoints = [vec4(ww, 0.0, 2.0, 1.0), vec4(0.0, 0.0, 2.0, 1.0), vec4(ww, 0.0, -5.0, 1.0),
+                            vec4(0.0, 0.0, 2.0, 1.0), vec4(0.0, 0.0, -5.0, 1.0), vec4(ww, 0.0, -5.0, 1.0),
+                            vec4(ww, 0.0, 8.0, 1.0), vec4(0.0, 0.0, 8.0, 1.0), vec4(ww, 0.0, 7.0, 1.0),
+                            vec4(0.0, 0.0, 8.0, 1.0), vec4(0.0, 0.0, 7.0, 1.0), vec4(ww, 0.0, 7.0, 1.0),
+                            vec4(ww, 0.0, 18.0, 1.0), vec4(0.0, 0.0, 18.0, 1.0), vec4(ww, 0.0, 13.0, 1.0),
+                            vec4(0.0, 0.0, 18.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(ww, 0.0, 13.0, 1.0),
+                            vec4(ww, 0.0, 13.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(ww, -1.0, 13.0, 1.0),
+                            vec4(0.0, -1.0, 13.0, 1.0), vec4(0.0, 0.0, 13.0, 1.0), vec4(ww, -1.0, 13.0, 1.0)];
         this.grassNormals = [vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
                             vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
                             vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
@@ -634,7 +651,7 @@ class Environment {
         gl.useProgram( program );
         setColor(vec4( 0.1, 0.2, 0.1, 1.0 ), vec4( 0.0, 0.8, 0.0, 1.0 ),
                  vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0, program);
-        mv = mult( mv, translate(-6.5, 0, -0.5));
+        mv = mult( mv, translate(-this.worldWidth/2, 0, -0.5));
         gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         setNormalMatrix(mv);
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
@@ -644,27 +661,28 @@ class Environment {
         gl.bufferData(gl.ARRAY_BUFFER, flatten(this.grassPoints), gl.STATIC_DRAW);
 
         gl.drawArrays( gl.TRIANGLES, 0, this.grassPoints.length );
+
     }
 
     drawRoad(mv) {
         gl.useProgram( program );
-        setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ),
-                 vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0, program);
-        mv = mult( mv, translate(-6.5, 0, 1.5));
-        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+        setColor(vec4( 0.2, 0.2, 0.2, 1.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ),
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 30.0, program);
+        mv = mult( mv, translate( 0.0, 0.0, 4.0));
+        mv = mult( mv, scalem(this.worldWidth, 1.0, 5.0));
         setNormalMatrix(mv);
+        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
-        gl.bufferData( gl.ARRAY_BUFFER, flatten(this.roadNormals), gl.STATIC_DRAW );
-
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(this.planeNormals), gl.STATIC_DRAW );
         gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.roadPoints), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.planePoints), gl.STATIC_DRAW);
+        gl.drawArrays( gl.TRIANGLES, 0, this.planePoints.length );
 
-        gl.drawArrays( gl.TRIANGLES, 0, this.roadPoints.length );
     }
     drawTunnels(mv) {
         var roadScale = 2.0;
         var riverScale = 2.1;
-        setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.6, 0.6, 0.6, 1.0 ),
+        setColor(vec4( 0.3, 0.3, 0.35, 1.0 ), vec4( 0.6, 0.6, 0.6, 1.0 ),
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 20.0, program);
         var y = 0.6;
         var tunnelCoords = [vec3(8.4, y, 4), // Left tunnels
@@ -676,7 +694,7 @@ class Environment {
                             vec3(roadScale, roadScale, riverScale),
                             vec3(roadScale, roadScale, roadScale), // Right tunnels
                             vec3(roadScale, roadScale, riverScale)];
-
+        // Draw each of the three tunnels.
         for(var i = 0; i < tunnelCoords.length; i++){
             var mv1 = mult( mv, translate(tunnelCoords[i][0], tunnelCoords[i][1], tunnelCoords[i][2]));
             mv1 = mult( mv1, scalem(tunnelScales[i][0], tunnelScales[i][1], tunnelScales[i][2]));
@@ -691,7 +709,6 @@ class Environment {
             gl.bufferData(gl.ARRAY_BUFFER, flatten(this.tunnelPoints), gl.STATIC_DRAW);
             gl.drawArrays( gl.TRIANGLES, 0, this.tunnelPoints.length );
         }
-        
     }
 
     generateRiver() {
@@ -718,8 +735,8 @@ class Environment {
         gl.uniform1f( gl.getUniformLocation(waterprogram, "time"), time );
         setColor(vec4( 0.0, 0.0, 0.1, 1.0 ), vec4( 0.0, 0.5, 1.0, 1.0 ),
         vec4( 0.4, 0.4, 0.4, 1.0 ), 100.0, waterprogram);
-        mv = mult( mv, translate(-6.5, -0.18, 7.5));
-        mv = mult( mv, scalem(1, 1, 0.5));
+        mv = mult( mv, translate(-this.worldWidth/2, -0.18, 7.5));
+        mv = mult( mv, scalem(1.5, 1, 0.5));
         gl.uniformMatrix4fv(gl.getUniformLocation(waterprogram, "modelViewMatrix"), false, flatten(mv) );
         var normalMatrix = [
             vec3(mv[0][0], mv[0][1], mv[0][2]),
