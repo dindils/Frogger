@@ -298,9 +298,9 @@ function setNormalMatrix(mv) {
 
 class Player {
     constructor() {
-        this.x = 5.0;
+        this.x = 0.0;
         this.y = 0.0;
-        this.z = 5.0;
+        this.z = 0.0;
         this.scale = 0.4
         this.animJumping = false;
         this.animY = 0.0;
@@ -450,7 +450,7 @@ class Car {
         this.length = 1.0;
         this.width = 0.6;
         this.height = 0.4;
-        this.speed = 0.01*lane - 0.005;// 0.03*lane - 0.01;
+        this.speed = 0.03*lane - 0.005;// 0.03*lane - 0.01;
         this.direction = (lane%2)*2-1;
         var plyData = PR.read("car1.ply");
 
@@ -461,15 +461,17 @@ class Car {
     }
 
     update(delta) {
+        var dir = this.direction;
+        var width = environment.worldWidth;
         if(delta =! undefined) {
-            this.x = this.x + this.direction*delta*this.speed;
+            this.x = this.x + dir*delta*this.speed;
         }
         
-        if(this.x <= -6.5 - this.length/2 && this.direction == -1){
-            this.x = 6.5 + this.length/2;
+        if(this.x <= -environment.worldWidth/2 - this.length/2 && this.direction == -1){
+            this.x = environment.worldWidth/2 + this.length/2;
         }
-        if(this.x >= 6.5 + this.length/2 && this.direction == 1){
-            this.x = -6.5 - this.length/2;
+        if(this.x >= environment.worldWidth/2 + this.length/2 && this.direction == 1){
+            this.x = -environment.worldWidth/2 - this.length/2;
         }
     }
 
