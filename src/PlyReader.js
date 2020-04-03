@@ -74,6 +74,12 @@ function point3D(x, y, z)
     this.z = z;
 }
 
+function point2D(x, y)
+{
+    this.x = x;
+    this.y = y;
+}
+
 function getNormal(p0,p1,p2){
     var v1 = new point3D(p2.x - p1.x,
 			 p2.y - p1.y,
@@ -94,6 +100,15 @@ function getNormal(p0,p1,p2){
     return normal;
 }
 
+function getTextureCoords(indices,texCoords) {
+	var ts = [];
+	for(var i = 0; i < indices.length; i ++){
+	   ts.push(new point2D(texCoords[indices[i]*2+0],
+						   texCoords[indices[i]*2+1]));
+	}
+	return ts;
+}
+
 function getPoints(indices,vertices){
  var ps = [];
  for(var i = 0; i < indices.length; i ++){
@@ -111,7 +126,9 @@ var PlyReader =(function(){
 	//Pos: returns an object with the elements of the plyfile
 	parse: function(data,callback){
 	    var retval,nl,line;
-	    var hasNormal = false;
+		var hasNormal = false;
+		var hasTexture = false;
+		var hasColor = false;
 	    // Read header
 	    while(data.length)
 	    {
@@ -126,7 +143,9 @@ var PlyReader =(function(){
 		if(retval[1] == "face") var npolys = parseInt(retval[2]);
 	      }
 	      if(line == "property float nx") hasNormal = true;
-	      //We ignore all but points and normals, for now.
+	      if(line == "property float s") hasTexture = true;
+	      if(line == "property uchar red") hasColor = true;
+	      //We ignore all but points, normals and textures for now.
 	      if(line == "end_header") break;
 	    }
 
@@ -135,7 +154,11 @@ var PlyReader =(function(){
 	    var maxPoint = new point3D(-Infinity, -Infinity, -Infinity);
 	    var vertices = [];
 	    var vertexNormals = [];
-	    var vNorms = [];
+		var vNorms = [];
+		var textureCoords = [];
+		var tCoords = [];
+		var vertexColors = [];
+		var vColors = [];
 
 	    for (var i = 0; i < npoints; i++) 
 	    {
@@ -154,6 +177,15 @@ var PlyReader =(function(){
 					  parseFloat(retval[4]),
 					  parseFloat(retval[5]));
 
+		if(hasColor) vColors.push(parseInt(retval[6])/255,
+					  parseInt(retval[7])/255,
+					  parseInt(retval[8])/255);
+		
+		/*if(hasTexture) tCoords.push(parseFloat(retval[6]),
+					 parseFloat(retval[7]));*/
+		if(hasTexture) tCoords.push(1-(parseFloat(retval[6])+1)/2,
+					 (parseFloat(retval[7])+1)/2);
+
 
 		minPoint.x = Math.min(minPoint.x, point.x);
 		minPoint.y = Math.min(minPoint.y, point.y);
@@ -161,7 +193,7 @@ var PlyReader =(function(){
 		maxPoint.x = Math.max(maxPoint.x, point.x);
 		maxPoint.y = Math.max(maxPoint.y, point.y);
 		maxPoint.z = Math.max(maxPoint.z, point.z);
-	    }
+		}
 	    // Polygons
 	    var pols = [];
 	    var newVertices = [];
@@ -186,13 +218,24 @@ var PlyReader =(function(){
 		} else {
 		   var ns = getPoints(indices,vNorms);
 		}
+		if(hasColor) {
+			var cs = getPoints(indices,vColors);
+		}
+		if(hasTexture) {
+			var ts = getTextureCoords(indices, tCoords);
+		}
 
 		pols.push(indices);
 		for(var j = 0; j < 3; j++){
 		    newVertices.push(ps[j].x, ps[j].y, ps[j].z);
-		    vertexNormals.push(ns[j].x, ns[j].y, ns[j].z);
+			vertexNormals.push(ns[j].x, ns[j].y, ns[j].z);
+			if(hasColor) {
+				vertexColors.push(cs[j].x, cs[j].y, cs[j].z)
+			}
+			if(hasTexture) {
+				textureCoords.push(vec2(ts[j].x, ts[j].y));
+			}
 		}
-		
 		//If faces are declared as boxes,
 		//not triangles.
 		if (nvertex == 4){
@@ -201,7 +244,8 @@ var PlyReader =(function(){
 		    {	
 			var normal = getNormal(ps[0],ps[1],ps[2]);
 			var ns = [normal,normal,normal,normal];
-		    }
+			}
+			// need to implement textures for faces
 		    ns.splice(1,1);
 		    for(var j = 0; j < 3; j++){
 			newVertices.push(ps[j].x, ps[j].y, ps[j].z);
@@ -218,7 +262,8 @@ var PlyReader =(function(){
 					 -(maxPoint.z + minPoint.z)/2);
 	    var scaleY = (maxPoint.y - minPoint.y) / 2;
 	    var points = [];
-	    var normals = [];
+		var normals = [];
+		var colors = [];
 	    for (var i = 0; i < vertices.length; i+=3) 
 	    {
 	      vertices[i+0] += centerMove.x;
@@ -237,8 +282,13 @@ var PlyReader =(function(){
 					  vertexNormals[i+1],
 					  vertexNormals[i+2],
 					  0]));
-	    };
-	    return {"points": points, "normals":normals, "polys": pols};
+		  colors.push(vec4(vertexColors[i],
+		  			  vertexColors[i+1],
+					  vertexColors[i+2],
+					  1.0));
+		  
+		};
+	    return {"points": points, "normals":normals, "polys": pols, "colors":colors, "texcoords":textureCoords};
 	},
 	getData: function(file){
 	    var data = loadFile(file);

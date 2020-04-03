@@ -1,7 +1,7 @@
 var canvas;
 var gl;
 
-var nBuffer, vBuffer;
+var nBuffer, vBuffer, cBuffer;
 
 var cubePoints = [];
 var cubeNormals = [];
@@ -21,6 +21,8 @@ var near = 0.2;
 var far = 100.0;
 
 var program;
+var waterprogram;
+var colorprogram;
 
 var lightPosition = vec4( 10.0, 20.0, -10.0, 1.0 );
 var lightAmbient = vec4( 1.0, 1.0, 1.0, 1.0 );
@@ -68,22 +70,6 @@ window.onload = function init() {
     //gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
 
-    PR = PlyReader();
-    player = new Player();
-
-    for(var i = 1; i < 6; i++){
-        for(var j = 0; j < 4; j++){
-            cars.push(new Car(i, j*13.0/4 - 6.5));
-        }
-    }
-    for(var i = 1; i < 6; i++){
-        for(var j = 0; j < 3; j++){
-            logs.push(new Log(i, j*13.0/3 - 6.5));
-        }
-    }
-
-    environment = new Environment();
-
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
     specularProduct = mult(lightSpecular, materialSpecular);
@@ -119,6 +105,28 @@ window.onload = function init() {
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
 
+    colorprogram = initShaders( gl, "color-vertex-shader", "color-fragment-shader");
+    gl.useProgram(colorprogram)
+
+    gl.uniformMatrix4fv(gl.getUniformLocation(colorprogram, "projectionMatrix"), false, flatten(projectionMatrix) )
+    gl.uniform4fv( gl.getUniformLocation(colorprogram, "lightPosition"), flatten(lightPosition) );
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+    vPosition = gl.getAttribLocation( colorprogram, "vPosition");
+    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPosition);
+    
+    gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+    vNormal = gl.getAttribLocation( colorprogram, "vNormal" );
+    gl.vertexAttribPointer( vNormal, 4, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( vNormal);
+    
+    cBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+    var vColor = gl.getAttribLocation( colorprogram, "vColor");
+    gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vColor);
+
     gl.useProgram(program);
 
     modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
@@ -127,6 +135,22 @@ window.onload = function init() {
 
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix) )
     gl.uniform4fv( gl.getUniformLocation(program, "lightPosition"), flatten(lightPosition) );
+
+    PR = PlyReader();
+    player = new Player();
+
+    for(var i = 1; i < 6; i++){
+        for(var j = 0; j < 1; j++){
+            cars.push(new Car(i, j*13.0/4 - 6.5));
+        }
+    }
+    for(var i = 1; i < 6; i++){
+        for(var j = 0; j < 3; j++){
+            logs.push(new Log(i, j*13.0/3 - 6.5));
+        }
+    }
+
+    environment = new Environment();
 
     //event listeners for mouse
     canvas.addEventListener("mousedown", function(e){
@@ -313,12 +337,10 @@ class Player {
         this.xMin *= this.scale;
         this.yMin *= this.scale;
         this.zMin *= this.scale;
-        console.log(this.xMin + " " + this.xMax);
-        console.log(this.yMin + " " + this.yMax);
-        console.log(this.zMin + " " + this.zMax);
     }
 
     draw(mv) {
+        gl.useProgram( program );
         setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
 
@@ -425,15 +447,11 @@ class Car {
         this.height = 0.4;
         this.speed = 0.03*lane - 0.01;
         this.direction = (lane%2)*2-1;
-        this.colors = [ vec4(1.0, 1.0, 0.0, 1,0),
-                        vec4(1.0, 0.0, 0.0, 1,0),
-                        vec4(0.0, 0.0, 1.0, 1,0),
-                        ];
-        this.diffuses = [];
-        this.colors.forEach(color => {
-            this.diffuses.push(scale(0.1,color));
-        });
-        this.newColor();
+        var plyData = PR.read("car1.ply");
+
+        this.points = plyData.points;
+        this.normals = plyData.normals;
+        this.colors = plyData.colors;
 
     }
 
@@ -444,40 +462,39 @@ class Car {
         
         if(this.x <= -6.5 - this.length/2 && this.direction == -1){
             this.x = 6.5 + this.length/2;
-            this.newColor();
         }
         if(this.x >= 6.5 + this.length/2 && this.direction == 1){
             this.x = -6.5 - this.length/2;
-            this.newColor();
-        }
-    }
-    newColor() {
-        if(this.isEveryColor){
-            this.color = vec4( Math.random(), Math.random(), Math.random(), 1.0);
-            this.diffuse = scale(0.1, this.color);
-        }
-        else {
-            var i = Math.floor(Math.random()*this.colors.length);
-            this.color = this.colors[i];
-            this.diffuse = this.diffuses[i];
         }
     }
 
     draw(mv) {
-        setColor( this.diffuse, this.color,
-                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
-        mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
-        mv = mult( mv, scalem(this.length, this.height, this.width))
+        gl.useProgram( colorprogram );
         
-        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
-        setNormalMatrix(mv);
+        setColor( vec4(0.2,0.1,0.0,1.0), vec4(1.0,0.0,0.0,1.0),
+            vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, colorprogram);
+        mv = mult( mv, translate(this.x, this.y + this.height/2+0.2, this.z));
+        mv = mult( mv, scalem(this.length/3, this.height, this.width/2))
+        mv = mult( mv, rotateY(90*(this.direction+1)));
+   
+        gl.uniformMatrix4fv(gl.getUniformLocation(colorprogram, "modelViewMatrix"), false, flatten(mv) );
+        var normalMatrix = [
+            vec3(mv[0][0], mv[0][1], mv[0][2]),
+            vec3(mv[1][0], mv[1][1], mv[1][2]),
+            vec3(mv[2][0], mv[2][1], mv[2][2])
+        ];
+        gl.uniformMatrix3fv(gl.getUniformLocation(colorprogram, "normalMatrix"), false, flatten(normalMatrix) );
+
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
-        gl.bufferData( gl.ARRAY_BUFFER, flatten(cubeNormals), gl.STATIC_DRAW );
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(cubePoints), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.points), gl.STATIC_DRAW);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.colors), gl.STATIC_DRAW);
 
-        gl.drawArrays( gl.TRIANGLES, 0, cubePoints.length );
+        gl.drawArrays( gl.TRIANGLES, 0, this.points.length );
     }
 }
 
@@ -523,6 +540,7 @@ class Log {
     }
 
     draw(mv) {
+        gl.useProgram( program );
         setColor( this.diffuse, this.color,
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
         mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
@@ -577,6 +595,7 @@ class Environment {
     }
 
     drawGrass(mv) {
+        gl.useProgram( program );
         setColor(vec4( 0.1, 0.2, 0.1, 1.0 ), vec4( 0.0, 0.8, 0.0, 1.0 ),
                  vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0, program);
         mv = mult( mv, translate(-6.5, 0, -0.5));
@@ -592,6 +611,7 @@ class Environment {
     }
 
     drawRoad(mv) {
+        gl.useProgram( program );
         setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ),
                  vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0, program);
         mv = mult( mv, translate(-6.5, 0, 1.5));
@@ -646,8 +666,6 @@ class Environment {
         gl.bufferData(gl.ARRAY_BUFFER, flatten(this.riverPoints), gl.STATIC_DRAW);
 
         gl.drawArrays( gl.TRIANGLE_STRIP, 0, this.riverPoints.length );
-
-        gl.useProgram( program );
     }
 
     draw(mv, now) {
