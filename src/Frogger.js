@@ -298,15 +298,15 @@ function setNormalMatrix(mv) {
 
 class Player {
     constructor() {
-        this.x = 0.0;
+        this.x = 5.0;
         this.y = 0.0;
-        this.z = 0.0;
+        this.z = 5.0;
         this.scale = 0.4
         this.animJumping = false;
         this.animY = 0.0;
         this.desiredX = 0.0;
         this.desiredZ = 0.0;
-        this.speed = 3;
+        this.speed = 6;
         this.logSpeed = 0.0;
         this.logDirection = 1;
         
@@ -364,6 +364,7 @@ class Player {
 
     update(delta) {
         //check for car collision
+        /*
         cars.forEach(car => {
             if(((car.x-car.length/2<this.x+this.xMin+0.1 && this.x+this.xMin+0.1<car.x+car.length/2)  ||
                 (car.x-car.length/2<this.x+this.xMax-0.1 && this.x+this.xMax-0.1<car.x+car.length/2)) &&
@@ -375,6 +376,7 @@ class Player {
                 console.log(car.x, car.y, car.z);
             }
         });
+        */
 
         if(this.animJumping) {
             this.animY = Math.abs(Math.sin((this.x-this.desiredX)*Math.PI)+Math.sin(this.z*Math.PI))/2;
@@ -399,6 +401,7 @@ class Player {
                 this.z = Math.round(this.z);
                 this.animJumping = false;
                 // if on water area
+                /*
                 if(this.z>=8 && this.z<=12) {
                     // check if on log 
                     var onLog = false;
@@ -416,7 +419,9 @@ class Player {
                         this.desiredX = 0.0;
                         this.desiredZ = 0.0;
                     }
+                    
                 }
+                */
             }
         } else {
             //reset log speed if on land
@@ -449,7 +454,7 @@ class Car {
         this.length = 1.0;
         this.width = 0.6;
         this.height = 0.4;
-        this.speed = 0.03*lane - 0.01;
+        this.speed = 0.01*lane - 0.005;// 0.03*lane - 0.01;
         this.direction = (lane%2)*2-1;
         var plyData = PR.read("car1.ply");
 
@@ -578,7 +583,7 @@ class Environment {
         this.riverPoints = [];
         this.riverNormals = [];
         this.generateRiver();
-
+        var plyData = PR.read("Tunnel.ply");
         //grass
         this.grassPoints = [vec4(13.0, 0.0, 2.0, 1.0), vec4(0.0, 0.0, 2.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0),
                             vec4(0.0, 0.0, 2.0, 1.0), vec4(0.0, 0.0, -5.0, 1.0), vec4(13.0, 0.0, -5.0, 1.0),
@@ -596,6 +601,9 @@ class Environment {
                             vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0), vec4(0.0, 1.0, 0.0, 0.0),
                             vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0),
                             vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0)];
+        //tunnel
+        this.tunnelPoints = plyData.points;
+        this.tunnelNormals = plyData.normals;
     }
 
     drawGrass(mv) {
@@ -628,6 +636,38 @@ class Environment {
         gl.bufferData(gl.ARRAY_BUFFER, flatten(this.roadPoints), gl.STATIC_DRAW);
 
         gl.drawArrays( gl.TRIANGLES, 0, this.roadPoints.length );
+    }
+    drawTunnels(mv) {
+        var roadScale = 2.0;
+        var riverScale = 2.1;
+        setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.6, 0.6, 0.6, 1.0 ),
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 20.0, program);
+        var y = 0.6;
+        var tunnelCoords = [vec3(8.4, y, 4), // Left tunnels
+                            vec3(8.4, y, 10),
+                            vec3(-8.4, y, 4), // Right tunnels
+                            vec3(-8.4, y, 10)];
+
+        var tunnelScales = [vec3(roadScale, roadScale, roadScale), // Left tunnels
+                            vec3(roadScale, roadScale, riverScale),
+                            vec3(roadScale, roadScale, roadScale), // Right tunnels
+                            vec3(roadScale, roadScale, riverScale)];
+
+        for(var i = 0; i < tunnelCoords.length; i++){
+            var mv1 = mult( mv, translate(tunnelCoords[i][0], tunnelCoords[i][1], tunnelCoords[i][2]));
+            mv1 = mult( mv1, scalem(tunnelScales[i][0], tunnelScales[i][1], tunnelScales[i][2]));
+            mv1 = mult( mv1, rotateX(-90));
+            mv1 = mult( mv1, rotateZ(-90));
+
+            gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv1) );
+            setNormalMatrix(mv1);
+            gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+            gl.bufferData( gl.ARRAY_BUFFER, flatten(this.tunnelNormals), gl.STATIC_DRAW );
+            gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(this.tunnelPoints), gl.STATIC_DRAW);
+            gl.drawArrays( gl.TRIANGLES, 0, this.tunnelPoints.length );
+        }
+        
     }
 
     generateRiver() {
@@ -675,6 +715,7 @@ class Environment {
     draw(mv, now) {
         this.drawGrass(mv);
         this.drawRoad(mv);
+        this.drawTunnels(mv);
         this.drawRiver(mv, now);
     }
 }
