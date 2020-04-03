@@ -34,9 +34,9 @@ void main()
 
 precision mediump float;
 
-uniform vec4 ambientProduct;
-uniform vec4 diffuseProduct;
-uniform vec4 specularProduct;
+uniform vec4 lightAmbient;
+uniform vec4 lightDiffuse;
+uniform vec4 lightSpecular;
 uniform float shininess;
 varying vec3 N, L, E;
 varying vec4 fVColor;
@@ -48,22 +48,22 @@ void main()
     vec4 fColor;
 
     vec3 H = normalize( L + E );
-    vec4 ambient = ambientProduct;
+    vec4 ambient = lightAmbient*fVColor;
 
     float Kd = max( dot(L, N), 0.0 );
-    vec4  diffuse = Kd*diffuseProduct;
+    vec4  diffuse = Kd*lightAmbient*fVColor;
 
     float Ks = pow( max(dot(N, H), 0.0), shininess );
-    vec4  specular = Ks * specularProduct;
+    vec4  specular = Ks * lightSpecular * vec4(1.0,1.0,1.0,1.0);
 
     if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
 
     fColor = ambient + diffuse +specular;
     fColor.a = 1.0;
    
-    fColor *= fVColor;
+    //fColor *= fVColor;
 
-    gl_FragColor = fVColor;
+    gl_FragColor = fColor;
 }
 </script>
 

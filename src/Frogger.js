@@ -25,7 +25,7 @@ var waterprogram;
 var colorprogram;
 
 var lightPosition = vec4( 10.0, 20.0, -10.0, 1.0 );
-var lightAmbient = vec4( 1.0, 1.0, 1.0, 1.0 );
+var lightAmbient = vec4( 0.5, 0.5, 0.5, 0.5 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
 var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
 
@@ -107,7 +107,11 @@ window.onload = function init() {
 
     colorprogram = initShaders( gl, "color-vertex-shader", "color-fragment-shader");
     gl.useProgram(colorprogram)
-
+    
+    gl.uniform4fv( gl.getUniformLocation(colorprogram, "lightAmbient"), flatten(lightAmbient) );
+    gl.uniform4fv( gl.getUniformLocation(colorprogram, "lightDiffuse"), flatten(lightDiffuse) );
+    gl.uniform4fv( gl.getUniformLocation(colorprogram, "lightSpecular"), flatten(lightSpecular) );
+    gl.uniform1f( gl.getUniformLocation(colorprogram, "shininess"), materialShininess );
     gl.uniformMatrix4fv(gl.getUniformLocation(colorprogram, "projectionMatrix"), false, flatten(projectionMatrix) )
     gl.uniform4fv( gl.getUniformLocation(colorprogram, "lightPosition"), flatten(lightPosition) );
 
