@@ -53,6 +53,7 @@ var logs = [];
 var environment;
 var PR;
 const PLAYERMODELLOC = "frog.ply"
+const TURTLEMODELLOC = "turtle.ply"
 const CARMODELLOC = ["car1.ply", "car2.ply"];
 
 window.onload = function init() {
@@ -385,7 +386,6 @@ class Player {
                 this.z = 0.0;
                 this.desiredX = 0.0;
                 this.desiredZ = 0.0;
-                console.log(car.x, car.y, car.z);
             }
         });
 
@@ -543,13 +543,20 @@ class Log {
         this.height = 0.4;
         this.speed = 0.03*lane - 0.01;
         this.direction = (lane%2)*2-1;
-        this.colors = [vec4(73/255, 56/255, 41/255, 1,0)];
+        this.colors = [vec4(73/255, 56/255, 41/255, 1,0),
+                       vec4(80/255, 56/255, 30/255, 1,0),
+                       vec4(50/255, 40/255, 20/255, 1,0)];
         this.diffuses = [];
         this.colors.forEach(color => {
             this.diffuses.push(scale(0.1,color));
         });
         this.newColor();
+        var plyData = PR.read(TURTLEMODELLOC);
 
+        this.turtlePoints = plyData.points;
+        this.turtleNormals = plyData.normals;
+        this.turtleColors = plyData.colors;
+        this.turtleScale = 0.07
     }
 
     update(delta) {
@@ -573,21 +580,49 @@ class Log {
     }
 
     draw(mv) {
-        gl.useProgram( program );
-        setColor( this.diffuse, this.color,
-                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
-        mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
-        mv = mult( mv, scalem(this.length, this.height, this.width))
+        if(this.direction<0) { //viðardrumbar
+            gl.useProgram( program );
+            setColor( this.diffuse, this.color,
+                    vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
+            mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
+            mv = mult( mv, scalem(this.length, this.height, this.width))
+            
+            gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
+            setNormalMatrix(mv);
+            gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+            gl.bufferData( gl.ARRAY_BUFFER, flatten(cubeNormals), gl.STATIC_DRAW );
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(cubePoints), gl.STATIC_DRAW);
+
+            gl.drawArrays( gl.TRIANGLES, 0, cubePoints.length );
+        } else { //skjaldbökur
+            gl.useProgram( colorprogram );
+            gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+            gl.bufferData( gl.ARRAY_BUFFER, flatten(this.turtleNormals), gl.STATIC_DRAW );
+    
+            gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(this.turtlePoints), gl.STATIC_DRAW);
+            
+            gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(this.turtleColors), gl.STATIC_DRAW);
+            for(var i=0; i<this.length; i++) {
+                var mv1 = mult( mv, translate(this.x+i-0.5, this.y+0.25, this.z));
+                mv1 = mult( mv1, scalem(this.turtleScale, this.turtleScale+0.07, this.turtleScale))
+                mv1 = mult( mv1, rotateY(90))
         
-        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
-        setNormalMatrix(mv);
-        gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
-        gl.bufferData( gl.ARRAY_BUFFER, flatten(cubeNormals), gl.STATIC_DRAW );
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, flatten(cubePoints), gl.STATIC_DRAW);
-
-        gl.drawArrays( gl.TRIANGLES, 0, cubePoints.length );
+                gl.uniformMatrix4fv(gl.getUniformLocation(colorprogram, "modelViewMatrix"), false, flatten(mv1) );
+                var normalMatrix = [
+                    vec3(mv1[0][0], mv1[0][1], mv1[0][2]),
+                    vec3(mv1[1][0], mv1[1][1], mv1[1][2]),
+                    vec3(mv1[2][0], mv1[2][1], mv1[2][2])
+                ];
+                gl.uniformMatrix3fv(gl.getUniformLocation(colorprogram, "normalMatrix"), false, flatten(normalMatrix) );
+        
+        
+                gl.drawArrays( gl.TRIANGLES, 0, this.turtlePoints.length );
+            }
+        }
     }
 }
 
