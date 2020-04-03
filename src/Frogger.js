@@ -52,7 +52,8 @@ var cars = [];
 var logs = [];
 var environment;
 var PR;
-const PLAYERMODELLOC = "frog_smooth.ply"
+const PLAYERMODELLOC = "frog.ply"
+const CARMODELLOC = ["car1.ply", "car2.ply"];
 
 window.onload = function init() {
 
@@ -144,7 +145,7 @@ window.onload = function init() {
     player = new Player();
 
     for(var i = 1; i < 6; i++){
-        for(var j = 0; j < 1; j++){
+        for(var j = 0; j < 3; j++){
             cars.push(new Car(i, j*13.0/4 - 6.5));
         }
     }
@@ -301,7 +302,8 @@ class Player {
         this.x = 0.0;
         this.y = 0.0;
         this.z = 0.0;
-        this.scale = 0.4
+        this.scale = 0.1
+        this.direction = 0; // 0 fram - 1 hægri - 2 niður - 3 vinstri
         this.animJumping = false;
         this.animY = 0.0;
         this.desiredX = 0.0;
@@ -314,6 +316,7 @@ class Player {
 
         this.points = plyData.points;
         this.normals = plyData.normals;
+        this.colors = plyData.colors;
         this.getBoundaries(); 
     }
 
@@ -344,29 +347,39 @@ class Player {
     }
 
     draw(mv) {
-        gl.useProgram( program );
-        setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
-                 vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
+        gl.useProgram( colorprogram );
+        //setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
+        //         vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
 
         mv = mult( mv, translate( 0.0, this.y + this.animY + 0.1, 0.0 ));
         mv = mult( mv, scalem(this.scale, this.scale, this.scale));
-        mv = mult( mv, rotateX(-85));
-        gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
-        setNormalMatrix(mv);
+        mv = mult( mv, rotateY(90+this.direction*90));
+        gl.uniformMatrix4fv(gl.getUniformLocation(colorprogram, "modelViewMatrix"), false, flatten(mv) );
+        var normalMatrix = [
+            vec3(mv[0][0], mv[0][1], mv[0][2]),
+            vec3(mv[1][0], mv[1][1], mv[1][2]),
+            vec3(mv[2][0], mv[2][1], mv[2][2])
+        ];
+        gl.uniformMatrix3fv(gl.getUniformLocation(colorprogram, "normalMatrix"), false, flatten(normalMatrix) );
         gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
         gl.bufferData( gl.ARRAY_BUFFER, flatten(this.normals), gl.STATIC_DRAW );
 
         gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(this.points), gl.STATIC_DRAW);
 
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.colors), gl.STATIC_DRAW);
+
         gl.drawArrays( gl.TRIANGLES, 0, this.points.length );
+
+        gl.useProgram( colorprogram );
     }
 
     update(delta) {
         //check for car collision
         cars.forEach(car => {
-            if(((car.x-car.length/2<this.x+this.xMin+0.1 && this.x+this.xMin+0.1<car.x+car.length/2)  ||
-                (car.x-car.length/2<this.x+this.xMax-0.1 && this.x+this.xMax-0.1<car.x+car.length/2)) &&
+            if(((car.x+car.xMin<this.x+this.xMin && this.x+this.xMin<car.x+car.xMax)  ||
+                (car.x+car.xMin<this.x+this.xMax && this.x+this.xMax<car.x+car.xMax)) &&
                 Math.abs(this.z-car.z) < 0.01) {
                 this.x = 0.0;
                 this.z = 0.0;
@@ -436,6 +449,19 @@ class Player {
             this.desiredX = this.x + x;
             this.desiredZ = Math.round(this.z) + z;
             this.animJumping = true;
+            if(Math.abs(x)<0.01) {
+                if(z>0) {
+                    this.direction = 0;
+                } else {
+                    this.direction = 2;
+                }
+            } else if(Math.abs(z)<0.01) {
+                if(x>0) {
+                    this.direction = 1;
+                } else {
+                    this.direction = 3;
+                }
+            }
         }
     }
 }
@@ -447,17 +473,19 @@ class Car {
         this.y = 0.0;
         this.z = lane + 1;
         this.lane = lane;
-        this.length = 1.0;
-        this.width = 0.6;
-        this.height = 0.4;
-        this.speed = 0.03*lane - 0.005;// 0.03*lane - 0.01;
+        this.length = 0.25;
+        this.width = 0.3;
+        this.height = 0.3;
+        this.speed = 0.01*lane - 0.005;// 0.03*lane - 0.01;
         this.direction = (lane%2)*2-1;
-        var plyData = PR.read("car1.ply");
+        
+        var plyData = PR.read(CARMODELLOC[Math.floor(Math.random()*CARMODELLOC.length)]);
 
         this.points = plyData.points;
         this.normals = plyData.normals;
         this.colors = plyData.colors;
-
+        this.xMax = 0.7;
+        this.xMin = -0.7;
     }
 
     update(delta) {
@@ -478,10 +506,10 @@ class Car {
     draw(mv) {
         gl.useProgram( colorprogram );
         
-        setColor( vec4(0.2,0.1,0.0,1.0), vec4(1.0,0.0,0.0,1.0),
-            vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, colorprogram);
+        //setColor( vec4(0.2,0.1,0.0,1.0), vec4(1.0,0.0,0.0,1.0),
+        //    vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, colorprogram);
         mv = mult( mv, translate(this.x, this.y + this.height/2+0.2, this.z));
-        mv = mult( mv, scalem(this.length/3, this.height, this.width/2))
+        mv = mult( mv, scalem(this.length, this.height, this.width))
         mv = mult( mv, rotateY(90*(this.direction+1)));
    
         gl.uniformMatrix4fv(gl.getUniformLocation(colorprogram, "modelViewMatrix"), false, flatten(mv) );

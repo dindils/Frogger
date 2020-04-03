@@ -54,11 +54,11 @@ void main()
     vec4  diffuse = Kd*lightAmbient*fVColor;
 
     float Ks = pow( max(dot(N, H), 0.0), shininess );
-    vec4  specular = Ks * lightSpecular * vec4(1.0,1.0,1.0,1.0);
+    //vec4  specular = Ks * lightSpecular * vec4(1.0,1.0,1.0,1.0);
 
-    if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+    //if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
 
-    fColor = ambient + diffuse +specular;
+    fColor = ambient + diffuse;// +specular;
     fColor.a = 1.0;
    
     //fColor *= fVColor;
