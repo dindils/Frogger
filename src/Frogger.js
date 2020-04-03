@@ -638,8 +638,8 @@ class Environment {
 
     drawRoad(mv) {
         gl.useProgram( program );
-        setColor(vec4( 0.3, 0.3, 0.3, 1.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ),
-                 vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0, program);
+        setColor(vec4( 0.2, 0.2, 0.2, 1.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ),
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 30.0, program);
         mv = mult( mv, translate( 0.0, 0.0, 4.0));
         mv = mult( mv, scalem(this.worldWidth, 1.0, 5.0));
         setNormalMatrix(mv);
