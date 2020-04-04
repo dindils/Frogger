@@ -46,8 +46,10 @@ var cars = [];
 var logs = [];
 var environment;
 var PR;
-const PLAYERMODELLOC = "frog.ply"
-const TURTLEMODELLOC = "turtle.ply"
+const PLAYERMODELLOC = "frog.ply";
+const TREEMODELLOC = "tree1.ply";
+const TURTLEMODELLOC = "turtle.ply";
+const TROPHYMODELLOC = "trophy.ply";
 const CARMODELLOC = ["car1.ply", "car2.ply", "car3.ply","car4.ply"];
 
 window.onload = function init() {
@@ -300,8 +302,6 @@ class Player {
 
     draw(mv) {
         gl.useProgram( colorprogram );
-        //setColor(vec4( 0.0, 0.2, 0.2, 1.0 ), vec4( 0.0, 1.0, 0.0, 1.0 ),
-        //         vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
 
         mv = mult( mv, translate( 0.0, this.y + this.animY + 0.1, 0.0 ));
         mv = mult( mv, scalem(this.scale, this.scale, this.scale));
@@ -328,6 +328,14 @@ class Player {
     }
 
     update(delta) {
+        //check if reached trophy
+        if(Math.abs(this.z-environment.trophyZ)<0.01 && Math.abs(this.x-environment.trophyX)<0.2) {
+            this.x = 0;
+            this.z = 0;
+            this.desiredX = 0;
+            this.desiredZ = 0;
+        }
+
         //check for car collision
         cars.forEach(car => {
             if(((car.x+car.xMin<this.x+this.xMin && this.x+this.xMin<car.x+car.xMax)  ||
@@ -468,8 +476,6 @@ class Car {
     draw(mv) {
         gl.useProgram( colorprogram );
         
-        //setColor( vec4(0.2,0.1,0.0,1.0), vec4(1.0,0.0,0.0,1.0),
-        //    vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, colorprogram);
         mv = mult( mv, translate(this.x, this.y + this.height/2+0.2, this.z));
         mv = mult( mv, scalem(this.length, this.height, this.width))
         mv = mult( mv, rotateY(90*(this.direction+1)));
@@ -637,6 +643,20 @@ class Environment {
         //tunnel
         this.tunnelPoints = plyData.points;
         this.tunnelNormals = plyData.normals;
+
+        var treeData = PR.read(TREEMODELLOC);
+
+        this.treePoints = treeData.points;
+        this.treeNormals = treeData.normals;
+        this.treeColors = treeData.colors;
+
+        var trophyData = PR.read(TROPHYMODELLOC)
+        this.trophyPoints = trophyData.points;
+        this.trophyNormals = trophyData.normals;
+        this.trophyColors = trophyData.colors;
+        this.trophyZ = 15;
+        this.trophyX = 0.5;
+        this.trophyScale = 0.4;
     }
 
     drawGrass(mv) {
@@ -654,6 +674,52 @@ class Environment {
 
         gl.drawArrays( gl.TRIANGLES, 0, this.grassPoints.length );
 
+    }
+
+    drawTrees(mv) {
+        //hægra megin
+        for(var i=0; i<6;i++) {
+            this.drawTree(mv, -8+((i*15)%32)/32, 0-i, 1.0, 150*i%360);
+        }for(var i=1; i<2;i++) {
+            this.drawTree(mv, -10+((i*15)%32)/32, 0-i, 1.0, 150*i%360);
+        }
+        //vinstra megin
+        for(var i=0; i<6;i++) {
+            this.drawTree(mv, 8-((i*15)%32)/32, 0-i, 1.0, 153*i%360);
+        }for(var i=1; i<2;i++) {
+            this.drawTree(mv, 10-((i*15)%32)/32, 0-i, 1.0, 157*i%360);
+        }
+        //neðan
+        /*for(var i=0; i<26;i++) {
+            this.drawTree(mv, 13-i, -5+((i*15)%32)/32, 1.0, 138*i%360);
+        }*/
+    }
+
+    drawTree(mv, x, z, scale, rotation) {
+        gl.useProgram( colorprogram );
+        
+        mv = mult( mv, translate(x, 0.7, z));
+        mv = mult( mv, scalem(scale, scale, scale));
+        mv = mult( mv, rotateY(rotation));
+   
+        gl.uniformMatrix4fv(gl.getUniformLocation(colorprogram, "modelViewMatrix"), false, flatten(mv) );
+        var normalMatrix = [
+            vec3(mv[0][0], mv[0][1], mv[0][2]),
+            vec3(mv[1][0], mv[1][1], mv[1][2]),
+            vec3(mv[2][0], mv[2][1], mv[2][2])
+        ];
+        gl.uniformMatrix3fv(gl.getUniformLocation(colorprogram, "normalMatrix"), false, flatten(normalMatrix) );
+
+        gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(this.treeNormals), gl.STATIC_DRAW );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.treePoints), gl.STATIC_DRAW);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.treeColors), gl.STATIC_DRAW);
+
+        gl.drawArrays( gl.TRIANGLES, 0, this.treePoints.length );
     }
 
     drawRoad(mv) {
@@ -724,6 +790,33 @@ class Environment {
         }
     }
 
+    drawTrophy(mv) {
+        gl.useProgram( colorprogram );
+        
+        mv = mult( mv, translate(this.trophyX, 0.4, this.trophyZ));
+        mv = mult( mv, scalem(this.trophyScale, this.trophyScale, this.trophyScale));
+        mv = mult( mv, rotateY(-90));
+   
+        gl.uniformMatrix4fv(gl.getUniformLocation(colorprogram, "modelViewMatrix"), false, flatten(mv) );
+        var normalMatrix = [
+            vec3(mv[0][0], mv[0][1], mv[0][2]),
+            vec3(mv[1][0], mv[1][1], mv[1][2]),
+            vec3(mv[2][0], mv[2][1], mv[2][2])
+        ];
+        gl.uniformMatrix3fv(gl.getUniformLocation(colorprogram, "normalMatrix"), false, flatten(normalMatrix) );
+
+        gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(this.trophyNormals), gl.STATIC_DRAW );
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.trophyPoints), gl.STATIC_DRAW);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.trophyColors), gl.STATIC_DRAW);
+
+        gl.drawArrays( gl.TRIANGLES, 0, this.trophyPoints.length );
+    }
+
     generateRiver() {
         for (var j = 0; j < this.noPointsZ-1; j++) {
             for(var i=0; i < this.noPointsX; i++) {
@@ -771,5 +864,7 @@ class Environment {
         this.drawRoad(mv);
         this.drawTunnels(mv);
         this.drawRiver(mv, now);
+        this.drawTrees(mv);
+        this.drawTrophy(mv);
     }
 }
