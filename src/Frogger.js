@@ -350,7 +350,7 @@ class Player {
                 this.desiredZ = 0;
             }
         }
-
+        
         if(this.animJumping) {
             this.animY = Math.abs(Math.sin((this.x-this.desiredX)*Math.PI)+Math.sin(this.z*Math.PI))/2;
             if(Math.abs(this.x-this.desiredX)>0.01) {
@@ -617,7 +617,8 @@ class Environment {
         this.riverPoints = [];
         this.riverNormals = [];
         this.generateRiver();
-        var plyData = PR.read("Tunnel.ply");
+        var tunnelData = PR.read("Tunnel.ply");
+        var hillsideData = PR.read("HillSide.ply");
         //grass
         this.grassPoints = [vec4(ww, 0.0, 2.0, 1.0), vec4(0.0, 0.0, 2.0, 1.0), vec4(ww, 0.0, -5.0, 1.0),
                             vec4(0.0, 0.0, 2.0, 1.0), vec4(0.0, 0.0, -5.0, 1.0), vec4(ww, 0.0, -5.0, 1.0),
@@ -636,8 +637,10 @@ class Environment {
                             vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0),
                             vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0), vec4(0.0, 0.0, -1.0, 0.0)];
         //tunnel
-        this.tunnelPoints = plyData.points;
-        this.tunnelNormals = plyData.normals;
+        this.tunnelPoints = tunnelData.points;
+        this.tunnelNormals = tunnelData.normals;
+        this.hillsidePoints = hillsideData.points;
+        this.hillsideNormals = hillsideData.normals;
     }
 
     drawGrass(mv) {
@@ -670,7 +673,6 @@ class Environment {
         gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, flatten(this.planePoints), gl.STATIC_DRAW);
         gl.drawArrays( gl.TRIANGLES, 0, this.planePoints.length );
-
     }
     drawTunnels(mv) {
         var roadScale = 2.0;
@@ -701,6 +703,58 @@ class Environment {
             gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, flatten(this.tunnelPoints), gl.STATIC_DRAW);
             gl.drawArrays( gl.TRIANGLES, 0, this.tunnelPoints.length );
+        
+        }
+    }
+    drawHillside(mv) {
+        var roadScale = 1.0;
+        var riverScale = 1.2;
+        setColor(vec4( 0.1, 0.2, 0.1, 1.0 ), vec4( 0.0, 0.8, 0.0, 1.0 ),
+                 vec4( 0.0, 0.0, 0.0, 0.0 ), 100.0, program);
+        var y = 0.98;
+        var x = 27.6;
+        var hillsideCoords = [  vec3(x, y, -3.4), // Left hillsides
+                                vec3(x, y, -15.8),
+                                vec3(x, y, -3.4), // Right hillsides
+                                vec3(x, y, -15.8)];
+
+        var hillsideScales = [vec3(roadScale, roadScale, roadScale), // Left hillsides
+                            vec3(roadScale, roadScale, riverScale),
+                            vec3(roadScale, roadScale, roadScale), // Right hillsides
+                            vec3(roadScale, roadScale, riverScale)];
+        for(var i = 0; i < hillsideCoords.length; i++){
+            var mv1 = mv;
+            var mv2 = mv;
+            if(i<2){
+                if(i%2 == 0){
+                    mv1 = mult( mv1, scalem(hillsideScales[i][0], hillsideScales[i][1], hillsideScales[i][2]));
+                }
+                else{
+                    mv1 = mult( mv1, scalem(hillsideScales[i][0], hillsideScales[i][1], -hillsideScales[i][2]));
+                }
+            }
+            else{
+                if(i%2 == 0){
+                    mv1 = mult( mv1, scalem(-hillsideScales[i][0], hillsideScales[i][1], hillsideScales[i][2]));
+                }
+                else{
+                    mv1 = mult( mv1, scalem(-hillsideScales[i][0], hillsideScales[i][1], -hillsideScales[i][2]));
+                }
+            }
+            mv1 = mult( mv1, translate(hillsideCoords[i][0], hillsideCoords[i][1], hillsideCoords[i][2]));
+            mv1 = mult( mv1, rotateY(-90));
+
+            mv2 = mult( mv2, translate(hillsideCoords[i][0], hillsideCoords[i][1], hillsideCoords[i][2]));
+            mv2 = mult( mv2, rotateY(-90));
+
+            this.t += 0.5;
+            gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv1) );
+            setNormalMatrix(mv);
+            gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+            gl.bufferData( gl.ARRAY_BUFFER, flatten(this.hillsideNormals), gl.STATIC_DRAW );
+            gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(this.hillsidePoints), gl.STATIC_DRAW);
+            gl.drawArrays( gl.TRIANGLES, 0, this.hillsidePoints.length );
         }
     }
 
@@ -750,6 +804,7 @@ class Environment {
         this.drawGrass(mv);
         this.drawRoad(mv);
         this.drawTunnels(mv);
+        this.drawHillside(mv);
         this.drawRiver(mv, now);
     }
 }
