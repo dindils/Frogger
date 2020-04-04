@@ -340,6 +340,17 @@ class Player {
             }
         });
 
+        // if on water area
+        if(this.z>=8 && this.z<=12) {
+            // check if player has gone outside playable area on a log.
+            if(this.x>6.8 || this.x<-6.8) {
+                this.x = 0;
+                this.z = 0;
+                this.desiredX = 0;
+                this.desiredZ = 0;
+            }
+        }
+
         if(this.animJumping) {
             this.animY = Math.abs(Math.sin((this.x-this.desiredX)*Math.PI)+Math.sin(this.z*Math.PI))/2;
             if(Math.abs(this.x-this.desiredX)>0.01) {
