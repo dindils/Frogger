@@ -661,7 +661,7 @@ class Environment {
         this.trophyNormals = trophyData.normals;
         this.trophyColors = trophyData.colors;
         this.trophyZ = 15;
-        this.trophyX = 0.5;
+        this.trophyX = 0;
         this.trophyScale = 0.4;
     }
 
