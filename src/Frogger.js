@@ -48,7 +48,7 @@ var environment;
 var PR;
 const PLAYERMODELLOC = "frog.ply"
 const TURTLEMODELLOC = "turtle.ply"
-const CARMODELLOC = ["car1.ply", "car2.ply"];
+const CARMODELLOC = ["car1.ply", "car2.ply", "car3.ply","car4.ply"];
 
 window.onload = function init() {
 
