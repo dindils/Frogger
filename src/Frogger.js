@@ -8,12 +8,6 @@ var cubeNormals = [];
 
 var now = 0.0;
 
-var movement = false;     // Do we rotate?
-var spinX = 0;
-var spinY = 0;
-var origX;
-var origY;
-
 var zDist = -5.0;
 
 var fovy = 60.0;
@@ -158,27 +152,6 @@ window.onload = function init() {
 
     environment = new Environment();
 
-    //event listeners for mouse
-    canvas.addEventListener("mousedown", function(e){
-        movement = true;
-        origX = e.clientX;
-        origY = e.clientY;
-        e.preventDefault();         // Disable drag and drop
-    } );
-
-    canvas.addEventListener("mouseup", function(e){
-        movement = false;
-    } );
-
-    canvas.addEventListener("mousemove", function(e){
-        if(movement) {
-    	    spinY = ( spinY + (e.clientX - origX) ) % 360;
-            //spinX = ( spinX + (e.clientY - origY) ) % 360;
-            origX = e.clientX;
-            origY = e.clientY;
-        }
-    } );
-
     window.addEventListener("keydown", function(e){
         switch( e.keyCode ) {
             case 37:	// vinstri ör
@@ -195,28 +168,6 @@ window.onload = function init() {
                 break;
         }
     } );
-
-    window.addEventListener("keyup", function(e){
-        switch( e.keyCode ) {
-            case 37:	// vinstri ör
-                break;
-            case 39:	// hægri ör
-                break;
-            case 38:	// upp ör    
-                break;
-            case 40:	// niður ör
-                break;
-        }
-    } );
-
-    // Event listener for mousewheel
-     window.addEventListener("wheel", function(e){
-         if( e.deltaY > 0.0 ) {
-             //zDist += 0.2;
-         } else {
-             //zDist -= 0.2;
-         }
-     }  );
 
     render();
 }
@@ -446,9 +397,11 @@ class Player {
 
     move(x, z) {
         if(!this.animJumping) {
-            this.desiredX = this.x + x;
-            this.desiredZ = Math.round(this.z) + z;
-            this.animJumping = true;
+            if(this.x+x>-6.5 && this.x+x<6.5 && this.z+z>-2.5 && this.z+z<16.5) {
+                this.desiredX = this.x + x;
+                this.desiredZ = Math.round(this.z) + z;
+                this.animJumping = true;
+            }
             if(Math.abs(x)<0.01) {
                 if(z>0) {
                     this.direction = 0;
@@ -630,19 +583,11 @@ class Log {
 class Environment {
     constructor() {
         //road
-        this.worldWidth = 20;
+        this.worldWidth = 30;
         var ww = this.worldWidth;
         this.roadTexCoords = [];
-            
-        this.planePoints = [ vec4( 0.5, 0.0,  0.5, 1.0),
-                        vec4(-0.5, 0.0, -0.5, 1.0),
-                        vec4( 0.5, 0.0, -0.5, 1.0),
-                        vec4( 0.5, 0.0,  0.5, 1.0),
-                        vec4(-0.5, 0.0,  0.5, 1.0),
-                        vec4(-0.5, 0.0, -0.5, 1.0)];
                      
-        this.planePoints = [
-                            vec4( 0.5, 0.0,  0.5, 1.0),
+        this.planePoints = [vec4( 0.5, 0.0,  0.5, 1.0),
                             vec4( 0.5, 0.0, -0.5, 1.0),
                             vec4(-0.5, 0.0, -0.5, 1.0),
                             vec4( 0.5, 0.0,  0.5, 1.0),
@@ -654,7 +599,7 @@ class Environment {
         }
 
         //river
-        this.noPointsX = 14;
+        this.noPointsX = this.worldWidth;
         this.noPointsZ = 12;
         this.riverPoints = [];
         this.riverNormals = [];
