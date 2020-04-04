@@ -1,168 +1,188 @@
 <!DOCTYPE html>
 <html>
+    <meta charset = "utf-8" />
+    <style>
 
-<script id="color-vertex-shader" type="x-shader/x-vertex">
-attribute vec4 vPosition;
-attribute vec4 vNormal;
-attribute vec4 vColor;
-varying vec3 N, L, E;
-varying vec4 fVColor;
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
-uniform vec4 lightPosition;
-uniform mat3 normalMatrix;
+      body {
+        background-color: rgb(229.5, 255, 255);
+      }
+      
+      h1 {
+        font-family:Garamond, Georgia, serif;
+        color: maroon;
+      }
+      div {
+        font-family: Garamond, Georgia, serif;
+      }
 
-void main()
-{
-    vec3 pos = (modelViewMatrix * vPosition).xyz;
+      #gl-canvas {
+        border-style:solid;
+        border-width: 1pc;
+      }
+    </style>
 
-    // check for directional light
-    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
-    else L = normalize( lightPosition.xyz - pos );
+    <script id="color-vertex-shader" type="x-shader/x-vertex">
+    attribute vec4 vPosition;
+    attribute vec4 vNormal;
+    attribute vec4 vColor;
+    varying vec3 N, L, E;
+    varying vec4 fVColor;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform vec4 lightPosition;
+    uniform mat3 normalMatrix;
 
-    E =  -normalize(pos);
-    N = normalize( normalMatrix*vNormal.xyz);
+    void main()
+    {
+        vec3 pos = (modelViewMatrix * vPosition).xyz;
 
+        // check for directional light
+        if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+        else L = normalize( lightPosition.xyz - pos );
+
+        E =  -normalize(pos);
+        N = normalize( normalMatrix*vNormal.xyz);
+
+        
+        fVColor = vColor;
+        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+
+    }
+    </script>
+
+    <script id="color-fragment-shader" type="x-shader/x-fragment">
+
+    precision mediump float;
+
+    uniform vec4 lightAmbient;
+    uniform vec4 lightDiffuse;
+    uniform vec4 lightSpecular;
+    uniform float shininess;
+    varying vec3 N, L, E;
+    varying vec4 fVColor;
+
+    uniform sampler2D texture;
+
+    void main()
+    {
+        vec4 fColor;
+
+        vec3 H = normalize( L + E );
+        vec4 ambient = lightAmbient*fVColor;
+
+        float Kd = max( dot(L, N), 0.0 );
+        vec4  diffuse = Kd*lightAmbient*fVColor;
+
+        float Ks = pow( max(dot(N, H), 0.0), shininess );
+        //vec4  specular = Ks * lightSpecular * vec4(1.0,1.0,1.0,1.0);
+
+        //if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+        fColor = ambient + diffuse;// +specular;
+        fColor.a = 1.0;
     
-    fVColor = vColor;
-    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+        //fColor *= fVColor;
 
-}
-</script>
+        gl_FragColor = fColor;
+    }
+    </script>
 
-<script id="color-fragment-shader" type="x-shader/x-fragment">
+    <script id="vertex-shader" type="x-shader/x-vertex">
 
-precision mediump float;
+    attribute vec4 vPosition;
+    attribute vec4 vNormal;
+    varying vec3 N, L, E;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform vec4 lightPosition;
+    uniform mat3 normalMatrix;
 
-uniform vec4 lightAmbient;
-uniform vec4 lightDiffuse;
-uniform vec4 lightSpecular;
-uniform float shininess;
-varying vec3 N, L, E;
-varying vec4 fVColor;
+    void main()
+    {
+        vec3 pos = (modelViewMatrix * vPosition).xyz;
 
-uniform sampler2D texture;
+        // check for directional light
+        if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+        else L = normalize( lightPosition.xyz - pos );
 
-void main()
-{
-    vec4 fColor;
+        E =  -normalize(pos);
+        N = normalize( normalMatrix*vNormal.xyz);
 
-    vec3 H = normalize( L + E );
-    vec4 ambient = lightAmbient*fVColor;
+        gl_Position = projectionMatrix * modelViewMatrix * vPosition;
 
-    float Kd = max( dot(L, N), 0.0 );
-    vec4  diffuse = Kd*lightAmbient*fVColor;
+    }
+    </script>
 
-    float Ks = pow( max(dot(N, H), 0.0), shininess );
-    //vec4  specular = Ks * lightSpecular * vec4(1.0,1.0,1.0,1.0);
+    <script id="fragment-shader" type="x-shader/x-fragment">
 
-    //if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+    precision mediump float;
 
-    fColor = ambient + diffuse;// +specular;
-    fColor.a = 1.0;
-   
-    //fColor *= fVColor;
+    uniform vec4 ambientProduct;
+    uniform vec4 diffuseProduct;
+    uniform vec4 specularProduct;
+    uniform float shininess;
+    varying vec3 N, L, E;
 
-    gl_FragColor = fColor;
-}
-</script>
+    void main()
+    {
+        vec4 fColor;
 
-<script id="vertex-shader" type="x-shader/x-vertex">
+        vec3 H = normalize( L + E );
+        vec4 ambient = ambientProduct;
 
-attribute vec4 vPosition;
-attribute vec4 vNormal;
-varying vec3 N, L, E;
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
-uniform vec4 lightPosition;
-uniform mat3 normalMatrix;
+        float Kd = max( dot(L, N), 0.0 );
+        vec4  diffuse = Kd*diffuseProduct;
 
-void main()
-{
-    vec3 pos = (modelViewMatrix * vPosition).xyz;
+        float Ks = pow( max(dot(N, H), 0.0), shininess );
+        vec4  specular = Ks * specularProduct;
 
-    // check for directional light
-    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
-    else L = normalize( lightPosition.xyz - pos );
+        if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
 
-    E =  -normalize(pos);
-    N = normalize( normalMatrix*vNormal.xyz);
+        fColor = ambient + diffuse +specular;
+        fColor.a = 1.0;
 
-    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+        gl_FragColor = fColor;
+    }
+    </script>
 
-}
-</script>
+    <script id="water-vertex-shader" type="x-shader/x-vertex">
+    attribute vec4 vPosition;
+    varying vec3 N, L, E;
+    uniform float time;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform vec4 lightPosition;
+    uniform mat3 normalMatrix;
 
-<script id="fragment-shader" type="x-shader/x-fragment">
+    float height(in float x, in float z) {
+        return cos(z+time)/15.0+sin(x+time)/10.0;
+    }
 
-precision mediump float;
+    void main()
+    {
+        vec4 vPos = vPosition;
+        vPos.y = height(vPos.x, vPos.z);
+        // calculate normal for position
+        float above = height(vPos.x, vPos.z+0.01);
+        float beside = height(vPos.x+0.01, vPos.z);
+        vec3 a = vec3(vPos.x, above, vPos.z+0.01) - vPos.xyz;
+        vec3 b = vec3(vPos.x+0.01, beside, vPos.z) - vPos.xyz;
+        vec3 vNormal = cross(a, b);
 
-uniform vec4 ambientProduct;
-uniform vec4 diffuseProduct;
-uniform vec4 specularProduct;
-uniform float shininess;
-varying vec3 N, L, E;
+        vec3 pos = (modelViewMatrix * vPosition).xyz;
 
-void main()
-{
-    vec4 fColor;
+        // check for directional light
+        if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+        else L = normalize( lightPosition.xyz - pos );
 
-    vec3 H = normalize( L + E );
-    vec4 ambient = ambientProduct;
-
-    float Kd = max( dot(L, N), 0.0 );
-    vec4  diffuse = Kd*diffuseProduct;
-
-    float Ks = pow( max(dot(N, H), 0.0), shininess );
-    vec4  specular = Ks * specularProduct;
-
-    if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
-
-    fColor = ambient + diffuse +specular;
-    fColor.a = 1.0;
-
-    gl_FragColor = fColor;
-}
-</script>
-
-<script id="water-vertex-shader" type="x-shader/x-vertex">
-attribute vec4 vPosition;
-varying vec3 N, L, E;
-uniform float time;
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
-uniform vec4 lightPosition;
-uniform mat3 normalMatrix;
-
-float height(in float x, in float z) {
-    return cos(z+time)/15.0+sin(x+time)/10.0;
-}
-
-void main()
-{
-    vec4 vPos = vPosition;
-    vPos.y = height(vPos.x, vPos.z);
-    // calculate normal for position
-    float above = height(vPos.x, vPos.z+0.01);
-    float beside = height(vPos.x+0.01, vPos.z);
-    vec3 a = vec3(vPos.x, above, vPos.z+0.01) - vPos.xyz;
-    vec3 b = vec3(vPos.x+0.01, beside, vPos.z) - vPos.xyz;
-    vec3 vNormal = cross(a, b);
-
-    vec3 pos = (modelViewMatrix * vPosition).xyz;
-
-    // check for directional light
-    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
-    else L = normalize( lightPosition.xyz - pos );
-
-    E =  -normalize(pos);
-    N = normalize( normalMatrix*vNormal.xyz);
+        E =  -normalize(pos);
+        N = normalize( normalMatrix*vNormal.xyz);
 
 
-    gl_Position = projectionMatrix * modelViewMatrix * vPos;
+        gl_Position = projectionMatrix * modelViewMatrix * vPos;
 
-}
-</script>
+    }
+    </script>
 
 <script type="text/javascript" src="../Common/webgl-utils.js"></script>
 <script type="text/javascript" src="../Common/initShaders.js"></script>
@@ -171,7 +191,11 @@ void main()
 <script type="text/javascript" src="Frogger.js"></script>
 
 <body>
- <canvas id="gl-canvas" width="600" height="600">
-        Oops ... your browser doesn't support the HTML5 canvas element</canvas>
+    <h1 align="center">Verkefni 3 (Frogger)</h1>
+    <div align="center" id="canvas">
+        <canvas align="center" id="gl-canvas" width="600" height="600">
+            Oops ... your browser doesn't support the HTML5 canvas element
+        </canvas>
+    </div>
 </body>
 </html>
