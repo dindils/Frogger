@@ -142,8 +142,8 @@ window.onload = function init() {
     player = new Player();
 
     for(var i = 1; i < 6; i++){
-        for(var j = 0; j < 3; j++){
-            cars.push(new Car(i, j*13.0/4 - 6.5));
+        for(var j = 0; j < 6; j++){
+            cars.push(new Car(i, j*19.0/6 - 9.5));
         }
     }
     for(var i = 1; i < 6; i++){
@@ -262,7 +262,7 @@ class Player {
         this.animY = 0.0;
         this.desiredX = 0.0;
         this.desiredZ = 0.0;
-        this.speed = 6;
+        this.speed = 3;
         this.logSpeed = 0.0;
         this.logDirection = 1;
         
@@ -603,7 +603,7 @@ class Log {
 class Environment {
     constructor() {
         //road
-        this.worldWidth = 30;
+        this.worldWidth = 19;
         var ww = this.worldWidth;
         this.roadTexCoords = [];
                      
@@ -684,7 +684,7 @@ class Environment {
 
     drawTrees(mv) {
         //hægra megin
-        for(var i=0; i<6;i++) {
+        /*for(var i=0; i<6;i++) {
             this.drawTree(mv, -8+((i*15)%32)/32, 0-i, 1.0, 150*i%360);
         }for(var i=1; i<2;i++) {
             this.drawTree(mv, -10+((i*15)%32)/32, 0-i, 1.0, 150*i%360);
@@ -694,11 +694,11 @@ class Environment {
             this.drawTree(mv, 8-((i*15)%32)/32, 0-i, 1.0, 153*i%360);
         }for(var i=1; i<2;i++) {
             this.drawTree(mv, 10-((i*15)%32)/32, 0-i, 1.0, 157*i%360);
-        }
-        //neðan
-        /*for(var i=0; i<26;i++) {
-            this.drawTree(mv, 13-i, -5+((i*15)%32)/32, 1.0, 138*i%360);
         }*/
+        //neðan
+        for(var i=0; i<13;i++) {
+            this.drawTree(mv, 6-i, -5+((i*15)%32)/32, 1.0, 138*i%360);
+        }
     }
 
     drawTree(mv, x, z, scale, rotation) {
