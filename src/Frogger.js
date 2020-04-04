@@ -657,6 +657,7 @@ class Environment {
     }
 
     drawRoad(mv) {
+        this.drawRoadLines(mv);
         gl.useProgram( program );
         setColor(vec4( 0.2, 0.2, 0.2, 1.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ),
                  vec4( 1.0, 1.0, 1.0, 1.0 ), 30.0, program);
@@ -671,6 +672,26 @@ class Environment {
         gl.drawArrays( gl.TRIANGLES, 0, this.planePoints.length );
 
     }
+
+    drawRoadLines(mv) {
+        gl.useProgram( program );
+        setColor(vec4( 0.4, 0.4, 0.4, 1.0 ), vec4( 1.0, 1.0, 1.0, 1.0 ),
+                 vec4( 1.0, 1.0, 1.0, 1.0 ), 30.0, program);
+        gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
+        gl.bufferData( gl.ARRAY_BUFFER, flatten(this.planeNormals), gl.STATIC_DRAW );
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(this.planePoints), gl.STATIC_DRAW);
+        for(var i=2.5; i<6;i++) {
+            for(var j=-this.worldWidth/2; j<this.worldWidth/2; j++) {
+                var mv1 = mult( mv, translate( j, 0.01, i));
+                mv1 = mult( mv1, scalem(0.2, 1.0, 0.05));
+                setNormalMatrix(mv1);
+                gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv1) );
+                gl.drawArrays( gl.TRIANGLES, 0, this.planePoints.length );
+            }
+        }
+    }
+
     drawTunnels(mv) {
         var roadScale = 2.0;
         var riverScale = 2.1;
