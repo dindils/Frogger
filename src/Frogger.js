@@ -18,7 +18,7 @@ var program;
 var waterprogram;
 var colorprogram;
 
-var lightPosition = vec4( 10.0, 20.0, -10.0, 1.0 );
+var lightPosition = vec4( 10.0, 50.0, -10, 1.0 );
 var lightAmbient = vec4( 0.5, 0.5, 0.5, 0.5 );
 var lightDiffuse = vec4( 1.0, 1.0, 1.0, 1.0 );
 var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
@@ -805,12 +805,14 @@ class Environment {
         var hillsideCoords = [  vec3(x, y, -3.4), // Left hillsides
                                 vec3(x, y, -15.8),
                                 vec3(x, y, -3.4), // Right hillsides
-                                vec3(x, y, -15.8)];
+                                vec3(x, y, -15.8),
+                                vec3(-2, y+0.01, 35)];// Back wall
 
         var hillsideScales = [vec3(roadScale, roadScale, roadScale), // Left hillsides
                             vec3(roadScale, roadScale, riverScale),
                             vec3(roadScale, roadScale, roadScale), // Right hillsides
-                            vec3(roadScale, roadScale, riverScale)];
+                            vec3(roadScale, roadScale, riverScale),
+                            vec3(roadScale*5, roadScale*1.1, riverScale)];
         for(var i = 0; i < hillsideCoords.length; i++){
             var mv1 = mv;
             var mv2 = mv;
@@ -822,7 +824,7 @@ class Environment {
                     mv1 = mult( mv1, scalem(hillsideScales[i][0], hillsideScales[i][1], -hillsideScales[i][2]));
                 }
             }
-            else{
+            else if(i<4) {
                 if(i%2 == 0){
                     mv1 = mult( mv1, scalem(-hillsideScales[i][0], hillsideScales[i][1], hillsideScales[i][2]));
                 }
@@ -830,8 +832,14 @@ class Environment {
                     mv1 = mult( mv1, scalem(-hillsideScales[i][0], hillsideScales[i][1], -hillsideScales[i][2]));
                 }
             }
+            else {
+                mv1 = mult( mv1, scalem(hillsideScales[i][0], hillsideScales[i][1], hillsideScales[i][2]))
+            }
             mv1 = mult( mv1, translate(hillsideCoords[i][0], hillsideCoords[i][1], hillsideCoords[i][2]));
             mv1 = mult( mv1, rotateY(-90));
+            if(i == 4){
+                mv1 = mult( mv1, rotateY(-90));
+            }
 
             mv2 = mult( mv2, translate(hillsideCoords[i][0], hillsideCoords[i][1], hillsideCoords[i][2]));
             mv2 = mult( mv2, rotateY(-90));
