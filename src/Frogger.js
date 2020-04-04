@@ -146,7 +146,7 @@ window.onload = function init() {
     }
     for(var i = 1; i < 6; i++){
         for(var j = 0; j < 3; j++){
-            logs.push(new Log(i, j*13.0/3 - 6.5));
+            logs.push(new Log(i, j*19.0/3 - 9.5));
         }
     }
 
@@ -503,6 +503,7 @@ class Log {
         this.z = lane + 7;
         this.lane = lane;
         this.length = Math.floor(2+Math.random()*2);
+        this.maxLength = 3;
         this.width = 0.6;
         this.height = 0.4;
         this.speed = 0.03*lane - 0.01;
@@ -528,12 +529,12 @@ class Log {
             this.x = this.x + this.direction*delta*this.speed;
         }
         
-        if(this.x <= -6.5 - this.length/2 && this.direction == -1){
-            this.x = 6.5 + this.length/2;
+        if(this.x <= -9.5 - this.maxLength/2 && this.direction == -1){
+            this.x = 9.5 + this.maxLength/2;
             this.newColor();
         }
-        if(this.x >= 6.5 + this.length/2 && this.direction == 1){
-            this.x = -6.5 - this.length/2;
+        if(this.x >= 9.5 + this.maxLength/2 && this.direction == 1){
+            this.x = -9.5 - this.maxLength/2;
             this.newColor();
         }
     }
@@ -548,11 +549,11 @@ class Log {
             gl.useProgram( program );
             setColor( this.diffuse, this.color,
                     vec4( 1.0, 1.0, 1.0, 1.0 ), 100.0, program);
-            mv = mult( mv, translate(this.x, this.y + this.height/2, this.z));
-            mv = mult( mv, scalem(this.length, this.height, this.width))
+            mv1 = mult( mv, translate(this.x, this.y + this.height/2, this.z));
+            mv1 = mult( mv1, scalem(this.length, this.height, this.width))
             
-            gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv) );
-            setNormalMatrix(mv);
+            gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(mv1) );
+            setNormalMatrix(mv1);
             gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
             gl.bufferData( gl.ARRAY_BUFFER, flatten(cubeNormals), gl.STATIC_DRAW );
 
@@ -571,7 +572,7 @@ class Log {
             gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, flatten(this.turtleColors), gl.STATIC_DRAW);
             for(var i=0; i<this.length; i++) {
-                var mv1 = mult( mv, translate(this.x+i-0.5, this.y+0.25, this.z));
+                var mv1 = mult( mv, translate(this.x+i-0.5*(this.length-1), this.y+0.25, this.z));
                 mv1 = mult( mv1, scalem(this.turtleScale, this.turtleScale+0.07, this.turtleScale))
                 mv1 = mult( mv1, rotateY(90))
         
