@@ -19,6 +19,13 @@
         border-style:solid;
         border-width: 1pc;
       }
+      .flex-container {
+        display: flex;
+        flex-wrap: nowrap;
+        background-color: rgb(229.5, 255, 255);
+        align-items: center;
+        justify-content: center;
+      }
     </style>
 
     <script id="color-vertex-shader" type="x-shader/x-vertex">
@@ -191,13 +198,23 @@
 <script type="text/javascript" src="Frogger.js"></script>
 
 <body>
-    <h1 align="center">Verkefni 3 (Frogger)</h1>
-    <div align="center" id="canvas">
+  
+  <div class = "flex-container">
+    <div align="center" style="flex-grow: 1" id="canvas">
+    </div>
+    <div align="center" style="flex-grow: 1" id="canvas">
+        <h1 align="center">Verkefni 3 (Frogger)</h1>
         <canvas align="center" id="gl-canvas" width="600" height="600">
             Oops ... your browser doesn't support the HTML5 canvas element
         </canvas>
+        <p align = "center">Davíð Sindri Pétursson, dsp1@hi.is</p>
+        <p align = "center">Gunnar Dofri Viðarsson, gdv1@hi.is</p>
     </div>
-    <p align = "center">Davíð Sindri Pétursson, dsp1@hi.is</p>
-    <p align = "center">Gunnar Dofri Viðarsson, gdv1@hi.is</p>
+    <div align="left" style="flex-grow: 1" id="canvas">
+      <p align = "left">LeaderBoards</p>
+      <p align = "left">Gunnar Dofri Viðarsson, gdv1@hi.is <br>fdsaf</p>
+    </div>
+  </div>
+  
 </body>
 </html>
