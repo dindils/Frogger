@@ -43,6 +43,7 @@ var then = 0; // seinasti tími sem kallað var á render
 
 var player;
 var cars = [];
+var canSpawnCar = [0,0,0,0,0];
 var logs = [];
 var environment;
 var PR;
@@ -51,7 +52,7 @@ const TREEMODELLOC = "tree1.ply";
 const TURTLEMODELLOC = "turtle.ply";
 const TROPHYMODELLOC = "trophy.ply";
 const CARMODELLOC = ["car1.ply", "car2.ply", "car3.ply","car4.ply"];
-
+const CARMODELDATA = [];
 window.onload = function init() {
 
     canvas = document.getElementById( "gl-canvas" );
@@ -139,11 +140,17 @@ window.onload = function init() {
     gl.uniform4fv( gl.getUniformLocation(program, "lightPosition"), flatten(lightPosition) );
 
     PR = PlyReader();
-    player = new Player();
 
+    for(var i = 0; i<CARMODELLOC.length; i++){
+        CARMODELDATA.push(PR.read(CARMODELLOC[i]));
+    }
+
+    player = new Player();
+    environment = new Environment();
+    var ww = this.environment.worldWidth
     for(var i = 1; i < 6; i++){
-        for(var j = 0; j < 3; j++){
-            cars.push(new Car(i, j*13.0/4 - 6.5));
+        for(var j = 0; j < 7; j++){
+            cars.push(new Car(i, j*(ww-1)/7 - 9.5));
         }
     }
     for(var i = 1; i < 6; i++){
@@ -152,7 +159,7 @@ window.onload = function init() {
         }
     }
 
-    environment = new Environment();
+    
 
     window.addEventListener("keydown", function(e){
         switch( e.keyCode ) {
@@ -175,6 +182,7 @@ window.onload = function init() {
 }
 
 function render(now) {
+
     now *= 0.001; // breytum í sekúndur
     var deltaTime = now - then;
     then = now; // geymum núverandi tímann
@@ -186,6 +194,7 @@ function render(now) {
     player.update(deltaTime);
     modelViewMatrix = mult( modelViewMatrix, translate(-player.x, 0.0, -player.z));
     environment.draw(modelViewMatrix, now);
+    
     for(var i = 0; i < cars.length; i++) {
         cars[i].draw(modelViewMatrix);
         cars[i].update(deltaTime);
@@ -194,6 +203,9 @@ function render(now) {
         logs[i].draw(modelViewMatrix);
         logs[i].update(deltaTime);
     }
+    spawnCars();
+    removeCars();
+
     window.requestAnimFrame(render);
 }
 
@@ -251,18 +263,45 @@ function setNormalMatrix(mv) {
     gl.uniformMatrix3fv(normalMatrixLoc, false, flatten(normalMatrix) );
 }
 
+function spawnCars() {
+    for(var i = 0; i < canSpawnCar.length; i++) { 
+        if (canSpawnCar[i] < 0) {
+            var lane = i+1;
+            dir = (lane%2)*2-1;
+            c = new Car( lane, -dir*environment.worldWidth/2 - dir*2);
+            cars.push(c);
+            canSpawnCar[i] = Math.random()*0+(6-i)*20;
+        }
+        else{
+            canSpawnCar[i]--;
+        }
+    }
+}
+
+function removeCars() {
+    for(var i = 0; i < cars.length; i++) {
+        var c = cars[i];
+        if(c.x)
+        if(c.x <= -environment.worldWidth/2 && c.direction == -1){
+            cars.splice(i, 1);
+        }
+        if(c.x >= environment.worldWidth/2 && c == 1){
+            cars.splice(i, 1);
+        }
+    }
+}
 class Player {
     constructor() {
         this.x = 0.0;
         this.y = 0.0;
         this.z = 0.0;
-        this.scale = 0.1
+        this.scale = 0.1;
         this.direction = 0; // 0 fram - 1 hægri - 2 niður - 3 vinstri
         this.animJumping = false;
         this.animY = 0.0;
         this.desiredX = 0.0;
         this.desiredZ = 0.0;
-        this.speed = 6;
+        this.speed = 3;
         this.logSpeed = 0.0;
         this.logDirection = 1;
         
@@ -448,10 +487,10 @@ class Car {
         this.length = 0.25;
         this.width = 0.3;
         this.height = 0.3;
-        this.speed = 0.01*lane - 0.005;// 0.03*lane - 0.01;
+        this.speed = 0.03*lane;// 0.03*lane - 0.01;
         this.direction = (lane%2)*2-1;
         
-        var plyData = PR.read(CARMODELLOC[Math.floor(Math.random()*CARMODELLOC.length)]);
+        var plyData = CARMODELDATA[Math.floor(Math.random()*CARMODELDATA.length)];
 
         this.points = plyData.points;
         this.normals = plyData.normals;
@@ -466,18 +505,22 @@ class Car {
         if(delta =! undefined) {
             this.x = this.x + dir*delta*this.speed;
         }
-        
+        /*
         if(this.x <= -environment.worldWidth/2 - this.length/2 && this.direction == -1){
-            this.x = environment.worldWidth/2 + this.length/2;
+            //var index = cars.indexOf(this);
+            //cars.splice(index, 1);
+            //this.x = environment.worldWidth/2 + this.length/2;
         }
         if(this.x >= environment.worldWidth/2 + this.length/2 && this.direction == 1){
-            this.x = -environment.worldWidth/2 - this.length/2;
+           // var index = cars.indexOf(this);
+            //cars.splice(index, 1);
+            //this.x = -environment.worldWidth/2 - this.length/2;
         }
+        */
     }
 
     draw(mv) {
         gl.useProgram( colorprogram );
-        
         mv = mult( mv, translate(this.x, this.y + this.height/2+0.2, this.z));
         mv = mult( mv, scalem(this.length, this.height, this.width))
         mv = mult( mv, rotateY(90*(this.direction+1)));
